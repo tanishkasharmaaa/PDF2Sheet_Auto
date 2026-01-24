@@ -1,30 +1,41 @@
-
+import fs from "fs";
+import path from "path";
 import pdfPoppler from "pdf-poppler";
-const { Poppler } = pdfPoppler; // destructure the Poppler object
-
 import { createWorker } from "tesseract.js";
 
+const { Poppler } = pdfPoppler;
+
 export const extractTextFromPdf = async (pdfPath) => {
-  const outputDir = "./temp"; 
+  const outputDir = "./temp";
+console.log(pdfPath)
+  // ✅ ensure temp directory exists
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir);
+  }
+
   const options = {
     format: "png",
     out_dir: outputDir,
     dpi: 200,
-    page: null
   };
 
-  // convert PDF pages to images
+  // convert pdf → images
   await Poppler.convert(pdfPath, options);
 
-  const worker = createWorker();
-  await worker.load();
-  await worker.loadLanguage("eng");
-  await worker.initialize("eng");
+  // 🔍 find generated image dynamically
+  const images = fs.readdirSync(outputDir).filter(f => f.endsWith(".png"));
+  if (!images.length) {
+    throw new Error("No image generated from PDF");
+  }
 
-  // assuming single page PDF for now
-  const imagePath = `${outputDir}/temp-1.png`;
+  const imagePath = path.join(outputDir, images[0]);
+
+  const worker = await createWorker("eng");
   const { data: { text } } = await worker.recognize(imagePath);
-
   await worker.terminate();
+
+  // 🧹 cleanup temp files
+  fs.unlinkSync(imagePath);
+
   return text;
 };

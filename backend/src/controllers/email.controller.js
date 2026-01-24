@@ -38,7 +38,8 @@ const pdfToImages = (pdfPath) => {
         .filter((f) => f.startsWith(baseName) && f.endsWith(".png"))
         .map((f) => path.join(TEMP_DIR, f));
 
-      if (!images.length) return reject(new Error("No images generated from PDF"));
+      if (!images.length)
+        return reject(new Error("No images generated from PDF"));
       resolve(images);
     });
   });
@@ -46,19 +47,33 @@ const pdfToImages = (pdfPath) => {
 
 // OCR using Tesseract
 const runOCR = async (imagePaths) => {
+  if (!imagePaths || !imagePaths.length)
+    throw new Error("No images to process");
+
   const worker = await createWorker();
-  await worker.loadLanguage("eng");
-  await worker.initialize("eng");
 
   let extractedText = "";
-  for (const img of imagePaths) {
-    if (!fs.existsSync(img)) throw new Error(`Invalid image file: ${img}`);
-    const { data } = await worker.recognize(img);
-    extractedText += data.text + "\n";
-  }
 
-  await worker.terminate();
-  return extractedText;
+  try {
+    // in v5, worker is already "preloaded"
+    for (const img of imagePaths) {
+      if (!fs.existsSync(img)) {
+        console.warn(`Skipping missing image: ${img}`);
+        continue;
+      }
+
+      // Use top-level recognize:
+      const { data } = await worker.recognize(img);
+      extractedText += data.text + "\n";
+    }
+
+    return extractedText.trim();
+  } catch (err) {
+    console.error("OCR failed:", err);
+    throw new Error("OCR_PROCESSING_FAILED");
+  } finally {
+    await worker.terminate();
+  }
 };
 
 // Extract currency amount
@@ -95,7 +110,8 @@ export const receiveEmail = async (req, res) => {
 
     const spreadsheetId = user.spreadsheets[0].spreadsheetId;
     const files = req.files || (req.file ? [req.file] : []);
-    if (!files.length) return res.status(400).json({ message: "Invoice file(s) required" });
+    if (!files.length)
+      return res.status(400).json({ message: "Invoice file(s) required" });
 
     const results = [];
 
@@ -113,9 +129,14 @@ export const receiveEmail = async (req, res) => {
         for (const row of rows) {
           if (user.subscription.invoicesUploaded >= allowedInvoices) break;
 
-          const exists = await InvoiceExtractionModel.findOne({ invoiceNumber: row.invoiceNumber });
+          const exists = await InvoiceExtractionModel.findOne({
+            invoiceNumber: row.invoiceNumber,
+          });
           if (exists) {
-            results.push({ invoiceNumber: row.invoiceNumber, status: "DUPLICATE_SKIPPED" });
+            results.push({
+              invoiceNumber: row.invoiceNumber,
+              status: "DUPLICATE_SKIPPED",
+            });
             continue;
           }
 
@@ -134,7 +155,11 @@ export const receiveEmail = async (req, res) => {
           await pushInvoiceToSheet(spreadsheetId, invoice);
           user.subscription.invoicesUploaded += 1;
 
-          results.push({ invoiceNumber: row.invoiceNumber, status: "AUTO_PROCESSED", confidenceScore: 1 });
+          results.push({
+            invoiceNumber: row.invoiceNumber,
+            status: "AUTO_PROCESSED",
+            confidenceScore: 1,
+          });
         }
         continue;
       }
@@ -145,6 +170,7 @@ export const receiveEmail = async (req, res) => {
         const pdfPath = saveBufferToTempFile(file.buffer, file.originalname);
         const images = await pdfToImages(pdfPath);
         extractedText = await runOCR(images);
+        console.log(extractedText);
         fs.unlinkSync(pdfPath);
         images.forEach((img) => fs.unlinkSync(img));
       } catch (err) {
@@ -153,17 +179,30 @@ export const receiveEmail = async (req, res) => {
       }
 
       const vendorMap = await VendorMap.findOne({ senderEmail });
-      let invoiceNumber = "", invoiceDate = "", totalAmount = "";
+      let invoiceNumber = "",
+        invoiceDate = "",
+        totalAmount = "";
 
       if (vendorMap?.extractionRules) {
-        const { invoiceNumberRegex, invoiceDateRegex, totalAmountRegex } = vendorMap.extractionRules;
-        if (invoiceNumberRegex) invoiceNumber = extractedText.match(new RegExp(invoiceNumberRegex, "i"))?.[1] || "";
-        if (invoiceDateRegex) invoiceDate = extractedText.match(new RegExp(invoiceDateRegex, "i"))?.[1] || "";
-        if (totalAmountRegex) totalAmount = extractedText.match(new RegExp(totalAmountRegex, "i"))?.[1] || "";
+        const { invoiceNumberRegex, invoiceDateRegex, totalAmountRegex } =
+          vendorMap.extractionRules;
+        if (invoiceNumberRegex)
+          invoiceNumber =
+            extractedText.match(new RegExp(invoiceNumberRegex, "i"))?.[1] || "";
+        if (invoiceDateRegex)
+          invoiceDate =
+            extractedText.match(new RegExp(invoiceDateRegex, "i"))?.[1] || "";
+        if (totalAmountRegex)
+          totalAmount =
+            extractedText.match(new RegExp(totalAmountRegex, "i"))?.[1] || "";
       }
 
-      if (!invoiceNumber) invoiceNumber = extractedText.match(/Invoice Number[:\s]*(.+)/i)?.[1]?.trim() || "";
-      if (!invoiceDate) invoiceDate = extractedText.match(/Invoice Date[:\s]*(.+)/i)?.[1]?.trim() || "";
+      if (!invoiceNumber)
+        invoiceNumber =
+          extractedText.match(/Invoice Number[:\s]*(.+)/i)?.[1]?.trim() || "";
+      if (!invoiceDate)
+        invoiceDate =
+          extractedText.match(/Invoice Date[:\s]*(.+)/i)?.[1]?.trim() || "";
       if (!totalAmount) totalAmount = extractAmount(extractedText);
 
       const exists = await InvoiceExtractionModel.findOne({ invoiceNumber });
@@ -191,16 +230,23 @@ export const receiveEmail = async (req, res) => {
         status,
       });
 
-      if (status === "AUTO_PROCESSED") await pushInvoiceToSheet(spreadsheetId, invoice);
+      if (status === "AUTO_PROCESSED")
+        await pushInvoiceToSheet(spreadsheetId, invoice);
       user.subscription.invoicesUploaded += 1;
       results.push({ invoiceNumber, status, confidenceScore });
     }
 
     await user.save();
 
-    res.json({ success: true, used: user.subscription.invoicesUploaded, results });
+    res.json({
+      success: true,
+      used: user.subscription.invoicesUploaded,
+      results,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to process invoices", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to process invoices", error: err.message });
   }
 };
