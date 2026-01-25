@@ -1,16 +1,14 @@
 import express from "express";
-import { getInvoices, getInvoiceByInvoiceNumber,getInvoicesByUserId } from "../controllers/invoice.controller.js";
+import { getInvoices, getInvoiceByInvoiceId,getInvoicesByUserId } from "../controllers/invoice.controller.js";
 import { receiveBatchInvoices } from "../controllers/batchInvoice.controller.js";
 import { authMiddleware } from "../middleware/authMiddlware.js";
 import { checkSubscription } from "../middleware/checkSubscription.js";
 
 const router = express.Router();
 
-// Get all invoices for the logged-in user
-router.get("/", authMiddleware, getInvoices);
 
 // Get a specific invoice by invoice number
-router.get("/:invoiceNumber", authMiddleware, getInvoiceByInvoiceNumber);
+router.get("/:invoiceId", authMiddleware, getInvoiceByInvoiceId);
 
 // Upload batch invoices (subscription-checked)
 router.post(
@@ -20,6 +18,6 @@ router.post(
   receiveBatchInvoices
 );
 
-router.get("/:userId",authMiddleware,getInvoicesByUserId);
+router.get("/",authMiddleware,getInvoicesByUserId);
 
 export default router;

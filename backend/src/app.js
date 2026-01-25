@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser"; // ✅ import cookie parser
-
+import session from "express-session"
 import emailRoutes from "./routes/email.routes.js";
 import vendorMappingRoutes from "./routes/mapping.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
@@ -15,6 +15,20 @@ app.use(cors({
   origin: process.env.FRONTEND_URL||"http://localhost:5173", // frontend URL
   credentials: true,               // allow cookies
 }));
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "mysecret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: true, // only secure in prod
+      httpOnly: true,
+      sameSite: "none",
+    },
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser()); // ✅ enable cookies
 

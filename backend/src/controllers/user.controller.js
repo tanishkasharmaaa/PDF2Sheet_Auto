@@ -9,6 +9,7 @@ dotenv.config()
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    console.log(name,email,password)
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -53,15 +54,15 @@ export const loginUser = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1d" }
     );
 
     // Set cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 1000, // 1 hour
+      secure: true,
+      sameSite: "none",
+      maxAge: 1 * 34 * 60 * 60 * 1000, // 1 hour
     });
 
     return res.status(200).json({
@@ -81,8 +82,10 @@ export const loginUser = async (req, res) => {
 // Get current user info
 export const getCurrentUser = async (req, res) => {
   try {
-    const user = req.user; 
+    const user = req.user;
+    console.log(user,"----------------") 
     res.status(200).json({ 
+      userId:user._id,
       name: user.name,
       email: user.email,
       subscription: user.subscription,
@@ -130,6 +133,7 @@ export const addSpreadsheet = async (req, res) => {
   try {
     const user = req.user;
     const { spreadsheetId } = req.body;
+    console.log(spreadsheetId,"---------------")
 
     if (!spreadsheetId) return res.status(400).json({ message: "Spreadsheet ID is required" });
 

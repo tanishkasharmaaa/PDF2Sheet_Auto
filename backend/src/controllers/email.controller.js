@@ -95,24 +95,32 @@ const parseExcelInvoice = (buffer) => {
 
 export const receiveEmail = async (req, res) => {
   try {
-    const { senderEmail } = req.body;
+    const senderEmail =
+      req.body.senderEmail ||
+      req.user?.email ||
+      "unknown@pdf2sheet.auto";
 
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(401).json({ message: "Unauthorized user" });
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized user" });
+    }
 
     const tierLimits = { Free: 20, Basic: 200, Pro: Infinity };
     const allowedInvoices = tierLimits[user.subscription.tier];
-    if (user.subscription.invoicesUploaded >= allowedInvoices)
-      return res.status(403).json({ message: `Invoice limit reached` });
 
-    if (!user.spreadsheets?.length)
+    if (user.subscription.invoicesUploaded >= allowedInvoices) {
+      return res.status(403).json({ message: "Invoice limit reached" });
+    }
+
+    if (!user.spreadsheets?.length) {
       return res.status(400).json({ message: "No spreadsheet connected" });
+    }
 
     const spreadsheetId = user.spreadsheets[0].spreadsheetId;
     const files = req.files || (req.file ? [req.file] : []);
     if (!files.length)
       return res.status(400).json({ message: "Invoice file(s) required" });
-
+    console.log(files,"------files")
     const results = [];
 
     for (const file of files) {
@@ -152,6 +160,7 @@ export const receiveEmail = async (req, res) => {
             status: "AUTO_PROCESSED",
           });
 
+          console.log(invoice,"--------------------invoice")
           await pushInvoiceToSheet(spreadsheetId, invoice);
           user.subscription.invoicesUploaded += 1;
 
@@ -205,7 +214,7 @@ export const receiveEmail = async (req, res) => {
           extractedText.match(/Invoice Date[:\s]*(.+)/i)?.[1]?.trim() || "";
       if (!totalAmount) totalAmount = extractAmount(extractedText);
 
-      const exists = await InvoiceExtractionModel.findOne({ invoiceNumber });
+      const exists = await InvoiceExtractionModel.findOne({ invoiceNumber,userId:user._id });
       if (exists) {
         results.push({ invoiceNumber, status: "DUPLICATE_SKIPPED" });
         continue;

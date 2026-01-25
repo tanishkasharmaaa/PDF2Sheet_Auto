@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import InvoiceExtractionModel from "../models/InvoiceExtraction.js";
 import { pushInvoiceToSheet } from "../services/googleSheets.js";
 import dotenv from "dotenv"
@@ -27,13 +28,21 @@ export const getInvoices = async (req, res) => {
   }
 };
 
-export const getInvoiceByInvoiceNumber = async (req, res) => {
+export const getInvoiceByInvoiceId = async (req, res) => {
   try {
-    const { invoiceNumber } = req.params;
+    const { invoiceId } = req.params;
+    console.log("Invoice ID:", invoiceId);
 
-    const invoice = await InvoiceExtractionModel
-      .findOne({ invoiceNumber })
-      .lean();
+    // Validate invoiceId
+    if (!invoiceId || !mongoose.Types.ObjectId.isValid(invoiceId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or missing invoice ID",
+      });
+    }
+
+    // Fetch invoice
+    const invoice = await InvoiceExtractionModel.findById(invoiceId).lean();
 
     if (!invoice) {
       return res.status(404).json({
@@ -42,13 +51,31 @@ export const getInvoiceByInvoiceNumber = async (req, res) => {
       });
     }
 
+    // Parse extractedText safely
+    let extractedData = {};
+    if (invoice.extractedText) {
+      if (typeof invoice.extractedText === "string") {
+        try {
+          extractedData = JSON.parse(invoice.extractedText);
+        } catch {
+          // If JSON.parse fails, store as rawText
+          extractedData = { rawText: invoice.extractedText };
+        }
+      } else if (typeof invoice.extractedText === "object") {
+        extractedData = invoice.extractedText; // already an object
+      } else {
+        extractedData = { rawText: String(invoice.extractedText) };
+      }
+    }
+
+    // Respond with safe data
     return res.status(200).json({
       success: true,
       data: {
         id: invoice._id,
         senderEmail: invoice.senderEmail,
         fileName: invoice.fileName,
-        extractedText: invoice.extractedText,
+        extractedText: extractedData, // always object
         invoiceNumber: invoice.invoiceNumber,
         invoiceDate: invoice.invoiceDate,
         totalAmount: invoice.totalAmount,
@@ -60,7 +87,7 @@ export const getInvoiceByInvoiceNumber = async (req, res) => {
     });
   } catch (err) {
     console.error("Fetch invoice failed:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch invoice",
     });
@@ -69,25 +96,24 @@ export const getInvoiceByInvoiceNumber = async (req, res) => {
 
 export const getInvoicesByUserId = async (req, res) => {
   try {
-    const { userId } = req.params; // userId comes from the route param
-    const { status, senderEmail } = req.query; // optional filters
+    const user = req.user; 
+    
+    const { status, senderEmail } = req.query; 
 
-    if (!userId) {
+    if (!user._id) {
       return res.status(400).json({
         success: false,
         message: "User ID is required",
       });
     }
 
-    const filter = { userId }; // filter by userId
+    const filter = { userId:user._id };
     if (status) filter.status = status;
     if (senderEmail) filter.senderEmail = senderEmail;
 
-    const invoices = await InvoiceExtractionModel
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .lean();
+    const invoices = await InvoiceExtractionModel.find({userId:user._id})
 
+     console.log(invoices)
     res.status(200).json({
       success: true,
       count: invoices.length,
