@@ -66,3 +66,35 @@ export const getInvoiceByInvoiceNumber = async (req, res) => {
     });
   }
 };
+
+export const getInvoicesByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params; // userId comes from the route param
+    const { status, senderEmail } = req.query; // optional filters
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const filter = { userId }; // filter by userId
+    if (status) filter.status = status;
+    if (senderEmail) filter.senderEmail = senderEmail;
+
+    const invoices = await InvoiceExtractionModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: invoices.length,
+      invoices,
+    });
+  } catch (error) {
+    console.error("Fetch invoices by user failed:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch invoices" });
+  }
+};

@@ -1,5 +1,5 @@
 import express from "express";
-import { getInvoices, getInvoiceByInvoiceNumber } from "../controllers/invoice.controller.js";
+import { getInvoices, getInvoiceByInvoiceNumber,getInvoicesByUserId } from "../controllers/invoice.controller.js";
 import { receiveBatchInvoices } from "../controllers/batchInvoice.controller.js";
 import { authMiddleware } from "../middleware/authMiddlware.js";
 import { checkSubscription } from "../middleware/checkSubscription.js";
@@ -19,5 +19,7 @@ router.post(
   checkSubscription,
   receiveBatchInvoices
 );
+
+router.get("/:userId",authMiddleware,getInvoicesByUserId);
 
 export default router;
