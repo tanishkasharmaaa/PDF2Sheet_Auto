@@ -5,7 +5,6 @@ const spreadsheetSchema = new mongoose.Schema(
     spreadsheetId: {
       type: String,
       required: true,
-      index: true, // quick lookup if needed
     },
     connectedAt: {
       type: Date,
@@ -49,7 +48,6 @@ const userSchema = new mongoose.Schema(
         type: String,
         enum: ["Free", "Basic", "Pro"],
         default: "Free",
-        index: true, // useful for analytics / limits
       },
       invoicesUploaded: {
         type: Number,
