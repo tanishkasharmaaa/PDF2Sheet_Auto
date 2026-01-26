@@ -1,6 +1,5 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URI;
 
-
 export async function addSpreadSheet(spreadsheetId, name, index = null) {
   if (!spreadsheetId || !name) {
     throw new Error("Spreadsheet ID and name are required");
@@ -65,6 +64,34 @@ export async function updateSpreadsheet(index, spreadsheetId, name) {
     return data;
   } catch (error) {
     console.error("Error updating spreadsheet:", error);
+    throw error;
+  }
+}
+
+export async function deleteSpreadsheet(index) {
+  if (index === null || index === undefined) {
+    throw new Error("Spreadsheet index is required");
+  }
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/users/delete-spreadsheet`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ index }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to delete spreadsheet");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error deleting spreadsheet:", error);
     throw error;
   }
 }

@@ -23,7 +23,11 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { usersInfo, userInvoices } from "../api/dashboardData";
-import { addSpreadSheet, updateSpreadsheet } from "../api/spreadsheet";
+import {
+  addSpreadSheet,
+  updateSpreadsheet,
+  deleteSpreadsheet,
+} from "../api/spreadsheet";
 import SpreadsheetHelpModal from "../components/SpreadsheetHelpModal";
 import { Navbar } from "../components/Navbar";
 
@@ -181,6 +185,37 @@ const Profile = () => {
     }
   };
 
+  const handleDeleteSpreadsheet = async () => {
+    try {
+      const data = await deleteSpreadsheet(selectedSheetIndex);
+
+      toast({
+        title: "Spreadsheet deleted",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setUsersData((prev) => ({
+        ...prev,
+        spreadsheets: data.spreadsheets,
+      }));
+
+      setSelectedSheetIndex(0);
+      setSpreadsheetIdInput("");
+      setSpreadsheetNameInput("");
+      navigate("/login");
+    } catch (err) {
+      toast({
+        title: "Delete failed",
+        description: err.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Flex justify="center" align="center" height="100vh">
@@ -188,7 +223,6 @@ const Profile = () => {
       </Flex>
     );
   }
-
 
   return (
     <>
@@ -250,137 +284,168 @@ const Profile = () => {
           </Box>
 
           {/* Spreadsheet Info */}
-{/* Spreadsheet Info */}
-<Box
-  p={6}
-  bg="whiteAlpha.50"
-  borderRadius="2xl"
-  border="1px solid"
-  borderColor="whiteAlpha.200"
->
-  <Text color="gray.400" mb={2}>
-    Connected Spreadsheets
-  </Text>
-
-  {usersData?.spreadsheets?.length > 0 ? (
-    subscriptionTier !== "Free" ? (
-      <>
-        {/* Select existing spreadsheet */}
-        <Select
-          mb={2}
-          bgColor={"black"}
-          value={selectedSheetIndex ?? ""}
-          onChange={(e) => {
-            const idx = e.target.value === "" ? null : parseInt(e.target.value);
-            setSelectedSheetIndex(idx);
-            setIsAddMode(idx === null);
-            if (idx !== null) {
-              setSpreadsheetIdInput(usersData.spreadsheets[idx].spreadsheetId);
-              setSpreadsheetNameInput(usersData.spreadsheets[idx].spreadsheetName || "");
-            } else {
-              setSpreadsheetIdInput("");
-              setSpreadsheetNameInput("");
-            }
-          }}
-        >
-          <option value="">Select Spreadsheet</option>
-          {usersData.spreadsheets.map((sheet, idx) => (
-            <option key={idx} value={idx} style={{ color: "black" }}>
-              {sheet.spreadsheetName || sheet.spreadsheetId} (Connected at{" "}
-              {new Date(sheet.connectedAt).toLocaleString()})
-            </option>
-          ))}
-        </Select>
-
-        <Flex gap={2}>
-          <Button
-            colorScheme="brand"
-            onClick={() => {
-              if (selectedSheetIndex === null) {
-                toast({
-                  title: "No spreadsheet selected",
-                  description: "Please select a spreadsheet to edit",
-                  status: "warning",
-                  duration: 3000,
-                  isClosable: true,
-                });
-                return;
-              }
-              setIsAddMode(false); // Edit mode
-              onEditOpen();
-            }}
+          <Box
+            p={6}
+            bg="whiteAlpha.50"
+            borderRadius="2xl"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
           >
-            Edit Selected Spreadsheet
-          </Button>
+            <Text color="gray.400" mb={2}>
+              Connected Spreadsheets
+            </Text>
 
-          <Button
-            colorScheme="brand"
-            ml={2}
-            isDisabled={!canAddMoreSpreadsheets}
-            onClick={() => {
-              setIsAddMode(true); // Add mode
-              setSelectedSheetIndex(null);
-              setSpreadsheetIdInput("");
-              setSpreadsheetNameInput("");
-              onEditOpen();
-            }}
-          >
-            Add New Spreadsheet
-          </Button>
-        </Flex>
-      </>
-    ) : (
-      // Free plan: show single spreadsheet
-      <>
-        <Text>
-          Spreadsheet Name: {usersData.spreadsheets[0].spreadsheetName || "Unnamed"}
-        </Text>
-        <Text>Spreadsheet ID: {usersData.spreadsheets[0].spreadsheetId}</Text>
-        <Text fontSize="sm" color="gray.500">
-          Connected At: {new Date(usersData.spreadsheets[0].connectedAt).toLocaleString()}
-        </Text>
-        <Button
-          colorScheme="brand"
-          mt={2}
-          onClick={() => {
-            setIsAddMode(false); // Edit mode
-            setSelectedSheetIndex(0);
-            setSpreadsheetIdInput(usersData.spreadsheets[0].spreadsheetId);
-            setSpreadsheetNameInput(usersData.spreadsheets[0].spreadsheetName || "");
-            onEditOpen();
-          }}
-        >
-          Edit Spreadsheet
-        </Button>
-      </>
-    )
-  ) : (
-    // No spreadsheet connected
-    <>
-      <Text color="red.400" mb={2}>
-        ⚠ You have not connected a spreadsheet. You cannot upload invoices without it.
-      </Text>
-      <Button colorScheme="brand" onClick={onOpen}>
-        Show Instructions
-      </Button>
-      <Button
-        colorScheme="brand"
-        ml={2}
-        isDisabled={!canAddMoreSpreadsheets}
-        onClick={() => {
-          setIsAddMode(true); // Add mode
-          setSelectedSheetIndex(null);
-          setSpreadsheetIdInput("");
-          setSpreadsheetNameInput("");
-          onEditOpen();
-        }}
-      >
-        Add New Spreadsheet
-      </Button>
-    </>
-  )}
-</Box>
+            {usersData?.spreadsheets?.length > 0 ? (
+              subscriptionTier !== "Free" ? (
+                <>
+                  {/* Select existing spreadsheet */}
+                  <Select
+                    mb={2}
+                    bgColor={"black"}
+                    value={selectedSheetIndex ?? ""}
+                    onChange={(e) => {
+                      const idx =
+                        e.target.value === "" ? null : parseInt(e.target.value);
+                      setSelectedSheetIndex(idx);
+                      setIsAddMode(idx === null);
+                      if (idx !== null) {
+                        setSpreadsheetIdInput(
+                          usersData.spreadsheets[idx].spreadsheetId,
+                        );
+                        setSpreadsheetNameInput(
+                          usersData.spreadsheets[idx].spreadsheetName || "",
+                        );
+                      } else {
+                        setSpreadsheetIdInput("");
+                        setSpreadsheetNameInput("");
+                      }
+                    }}
+                  >
+                    <option value="" style={{ color: "black" }}>
+                      SELECT SPREADSHEET
+                    </option>
+                    {usersData.spreadsheets.map((sheet, idx) => (
+                      <option key={idx} value={idx} style={{ color: "black" }}>
+                        {sheet.spreadsheetName || sheet.spreadsheetId}{" "}
+                        (Connected at{" "}
+                        {new Date(sheet.connectedAt).toLocaleString()})
+                      </option>
+                    ))}
+                  </Select>
 
+                  <Flex
+                    gap={2}
+                    mt={2}
+                    direction={{ base: "column", md: "row" }}
+                  >
+                    <Button
+                      colorScheme="brand"
+                      width={{ base: "100%", md: "auto" }}
+                      onClick={() => {
+                        if (selectedSheetIndex === null) {
+                          toast({
+                            title: "No spreadsheet selected",
+                            description: "Please select a spreadsheet to edit",
+                            status: "warning",
+                            duration: 3000,
+                            isClosable: true,
+                          });
+                          return;
+                        }
+                        setIsAddMode(false);
+                        onEditOpen();
+                      }}
+                    >
+                      Edit Selected Spreadsheet
+                    </Button>
+
+                    <Button
+                      colorScheme="brand"
+                      width={{ base: "100%", md: "auto" }}
+                      isDisabled={!canAddMoreSpreadsheets}
+                      onClick={() => {
+                        setIsAddMode(true);
+                        setSelectedSheetIndex(null);
+                        setSpreadsheetIdInput("");
+                        setSpreadsheetNameInput("");
+                        onEditOpen();
+                      }}
+                    >
+                      Add New Spreadsheet
+                    </Button>
+
+                    <Button
+                      colorScheme="red"
+                      width={{ base: "100%", md: "auto" }}
+                      onClick={handleDeleteSpreadsheet}
+                      isDisabled={!usersData?.spreadsheets?.length}
+                    >
+                      Delete Selected Spreadsheet
+                    </Button>
+                  </Flex>
+                </>
+              ) : (
+                // Free plan: show single spreadsheet
+                <>
+                  <Text>
+                    Spreadsheet Name:{" "}
+                    {usersData.spreadsheets[0].spreadsheetName || "Unnamed"}
+                  </Text>
+                  <Text>
+                    Spreadsheet ID: {usersData.spreadsheets[0].spreadsheetId}
+                  </Text>
+                  <Text fontSize="sm" color="gray.500">
+                    Connected At:{" "}
+                    {new Date(
+                      usersData.spreadsheets[0].connectedAt,
+                    ).toLocaleString()}
+                  </Text>
+                  <Button
+                    colorScheme="brand"
+                    mt={2}
+                    onClick={() => {
+                      setIsAddMode(false); // Edit mode
+                      setSelectedSheetIndex(0);
+                      setSpreadsheetIdInput(
+                        usersData.spreadsheets[0].spreadsheetId,
+                      );
+                      setSpreadsheetNameInput(
+                        usersData.spreadsheets[0].spreadsheetName || "",
+                      );
+                      onEditOpen();
+                    }}
+                  >
+                    Edit Spreadsheet
+                  </Button>
+                </>
+              )
+            ) : (
+              // No spreadsheet connected
+              <>
+                <Text color="red.400" mb={2}>
+                  ⚠ You have not connected a spreadsheet. You cannot upload
+                  invoices without it.
+                </Text>
+                <Button colorScheme="brand" onClick={onOpen}>
+                  Show Instructions
+                </Button>
+                <Button
+                  colorScheme="brand"
+                  ml={2}
+                  isDisabled={!canAddMoreSpreadsheets}
+                  onClick={() => {
+                    setIsAddMode(true); // Add mode
+                    setSelectedSheetIndex(null);
+                    setSpreadsheetIdInput("");
+                    setSpreadsheetNameInput("");
+                    onEditOpen();
+                  }}
+                >
+                  Add New Spreadsheet
+                </Button>
+              </>
+            )}
+          </Box>
 
           <Flex gap={4}>
             <Button variant="outline" colorScheme="red" onClick={handleLogout}>
