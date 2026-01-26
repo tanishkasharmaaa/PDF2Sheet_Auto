@@ -12,6 +12,7 @@ import {
   VStack,
   Badge,
   Box,
+  Select,
   useToast,
   Alert,
   AlertIcon,
@@ -29,14 +30,28 @@ const ALLOWED_TYPES = [
 const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedSpreadsheet, setSelectedSpreadsheet] = useState(null);
+  const [userData, setUserData] = useState({});
   const toast = useToast();
 
   useEffect(() => {
-    if (!isOpen) setFile(null);
+    if (!isOpen) {
+      setFile(null);
+      setSelectedSpreadsheet(null);
+    }
+
+    // Load user data from localStorage
+    const storedUserData = JSON.parse(localStorage.getItem("usersData") || "{}");
+    setUserData(storedUserData);
+
+    // Set default spreadsheet for Free plan or first spreadsheet
+    if (storedUserData?.spreadsheets?.length > 0) {
+      setSelectedSpreadsheet(storedUserData.spreadsheets[0]);
+    }
   }, [isOpen]);
 
-  const getFileFingerprint = (file) => {
-    return `${file.name}_${file.size}_${file.lastModified}`;
+  const getFileFingerprint = (file, userId) => {
+    return `${userId}_${file.name}_${file.size}_${file.lastModified}`;
   };
 
   const getUploadedFiles = () => {
@@ -47,7 +62,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
     const existing = getUploadedFiles();
     localStorage.setItem(
       "uploadedInvoices",
-      JSON.stringify([...existing, fingerprint]),
+      JSON.stringify([...existing, fingerprint])
     );
   };
 
@@ -55,10 +70,11 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    if (!ALLOWED_TYPES.includes(selectedFile.type)) {
+    const userId = userData.userId;
+    if (!userId) {
       toast({
-        title: "Invalid file type",
-        description: "Only PDF, CSV, or Excel files are allowed",
+        title: "User not found",
+        description: "Please login again",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -67,18 +83,15 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
       return;
     }
 
-    const fingerprint = getFileFingerprint(selectedFile);
-    const uploadedFiles = getUploadedFiles();
-
-    if (uploadedFiles.includes(fingerprint)) {
+    const fingerprint = getFileFingerprint(selectedFile, userId);
+    if (getUploadedFiles().includes(fingerprint)) {
       toast({
         title: "Duplicate file detected",
-        description: "This invoice was already uploaded",
+        description: "You already uploaded this invoice",
         status: "warning",
         duration: 3000,
         isClosable: true,
       });
-
       e.target.value = null;
       return;
     }
@@ -88,26 +101,37 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
 
   const handleSubmit = async () => {
     if (!file) return;
+    if (!selectedSpreadsheet) {
+      toast({
+        title: "No spreadsheet selected",
+        description: "Please select a spreadsheet to upload the invoice",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
     try {
       setLoading(true);
 
       const formData = new FormData();
       formData.append("invoice", file);
+      formData.append("spreadsheetId", selectedSpreadsheet.spreadsheetId);
 
       await axios.post(
         `${import.meta.env.VITE_BACKEND_URI}/email/receive`,
         formData,
-        { withCredentials: true },
+        { withCredentials: true }
       );
 
-      // ✅ save fingerprint AFTER success
-      const fingerprint = getFileFingerprint(file);
+      // Save fingerprint AFTER success
+      const fingerprint = getFileFingerprint(file, userData.userId);
       saveUploadedFile(fingerprint);
 
       toast({
         title: "Invoice uploaded",
-        description: "Invoice extraction has started",
+        description: `Invoice will be added to "${selectedSpreadsheet.spreadsheetName || selectedSpreadsheet.spreadsheetId}"`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -115,7 +139,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
 
       onClose();
       onUploadSuccess?.();
-      window.location.reload()
+      window.location.reload();
     } catch (error) {
       toast({
         title: "Upload failed",
@@ -129,6 +153,8 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
     }
   };
 
+  const subscriptionTier = userData?.subscription?.tier || "Free";
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
       <ModalOverlay bg="blackAlpha.700" />
@@ -138,6 +164,35 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
 
         <ModalBody>
           <VStack spacing={4} align="stretch">
+            {/* Spreadsheet selector for Basic/Pro */}
+            {subscriptionTier !== "Free" && userData?.spreadsheets?.length > 0 && (
+              <Box>
+                <Text mb={1} color="gray.400">
+                  Select Spreadsheet:
+                </Text>
+                <Select
+                  bg="#0B0F1A"
+                  borderColor="gray.700"
+                  _hover={{ borderColor: "brand.500" }}
+                  _focus={{ borderColor: "brand.500" }}
+                  value={selectedSpreadsheet?.spreadsheetId || ""}
+                  onChange={(e) => {
+                    const sheet = userData.spreadsheets.find(
+                      (s) => s.spreadsheetId === e.target.value
+                    );
+                    setSelectedSpreadsheet(sheet);
+                  }}
+                >
+                  {userData.spreadsheets.map((sheet, idx) => (
+                    <option key={idx} value={sheet.spreadsheetId}>
+                      {sheet.spreadsheetName || sheet.spreadsheetId}
+                    </option>
+                  ))}
+                </Select>
+              </Box>
+            )}
+
+            {/* File input */}
             <Input
               type="file"
               accept=".pdf,.csv,.xlsx,.xls"

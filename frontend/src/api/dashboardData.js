@@ -51,15 +51,24 @@ export async function getInvoiceByInvoiceId (invoiceId) {
     }
 }
 
-export async function uploadInvoices(files) {
+export async function uploadInvoices(files, spreadsheetId) {
   try {
     if (!files || files.length === 0) {
       throw new Error("No files selected");
     }
 
+    if (!spreadsheetId) {
+      throw new Error("Spreadsheet ID is required");
+    }
+
     const formData = new FormData();
     files.forEach((file) => formData.append("invoices", file));
-     console.log(files)
+
+    // Append the selected spreadsheetId
+    formData.append("spreadsheetId", spreadsheetId);
+
+    console.log("Uploading files:", files, "to spreadsheet:", spreadsheetId);
+
     const res = await fetch(`${BACKEND_URL}/email/receive`, {
       method: "POST",
       credentials: "include",
