@@ -18,11 +18,14 @@ import {
   ModalFooter,
   Input,
   useDisclosure,
+  Image
 } from "@chakra-ui/react";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { usersInfo, userInvoices } from "../api/dashboardData"; // make sure to create updateSpreadsheetId API
 import { addSpreadSheet } from "../api/spreadsheet";
+import SpreadsheetHelpModal from "../components/SpreadsheetHelpModal";
+import {Navbar} from "../components/Navbar"
 
 const tierLimits = {
   Free: 20,
@@ -43,7 +46,7 @@ const Profile = () => {
     isOpen: isEditOpen,
     onOpen: onEditOpen,
     onClose: onEditClose,
-  } = useDisclosure(); // For Edit Spreadsheet Modal
+  } = useDisclosure(); 
 
   useEffect(() => {
     async function fetchData() {
@@ -157,7 +160,8 @@ const Profile = () => {
 
   const spreadsheet = usersData?.spreadsheets?.[0];
 
-  return (
+  return (<>
+  <Navbar/>
     <Box px={{ base: 4, md: 8 }} py={8}>
       <Heading size="lg" mb={4}>
         User Profile
@@ -248,7 +252,6 @@ const Profile = () => {
           )}
         </Box>
 
-       
         <Flex gap={4}>
           {!spreadsheet && (
             <Button colorScheme="brand" onClick={onEditOpen}>
@@ -262,17 +265,8 @@ const Profile = () => {
       </VStack>
 
       {/* Instructions Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>How to Connect Your Spreadsheet</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            {/* Add your corrected step-by-step instructions here */}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-
+      <SpreadsheetHelpModal isOpen={isOpen} onClose={onClose}/>
+     
       {/* Edit Spreadsheet Modal */}
       <Modal isOpen={isEditOpen} onClose={onEditClose} isCentered>
         <ModalOverlay bg="blackAlpha.600" />
@@ -331,7 +325,7 @@ const Profile = () => {
         </ModalContent>
       </Modal>
     </Box>
-  );
+  </>);
 };
 
 export default Profile;

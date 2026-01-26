@@ -15,6 +15,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import UploadInvoicesModal from "../components/UploadInvoivesModal";
 import { usersInfo, userInvoices } from "../api/dashboardData";
+import { Navbar } from "../components/Navbar";
 
 const tierLimits = {
   Free: 20,
@@ -79,7 +80,7 @@ const Dashboard = () => {
   const handleUploadClick = () => {
     if (invoicesUsed >= invoiceLimit) {
       if (subscriptionTier === "Pro") {
-        setIsUploadOpen(true); // Pro has unlimited uploads
+        setIsUploadOpen(true); 
       } else {
         toast({
           title: "Invoice Limit Reached",
@@ -102,7 +103,8 @@ const Dashboard = () => {
     );
   }
 
-  return (
+  return (<>
+  <Navbar />
     <Box px={{ base: 4, md: 8 }} py={8}>
       {/* HEADER */}
       <Box mb={10}>
@@ -250,7 +252,7 @@ const Dashboard = () => {
         )}
       </Box>
     </Box>
-  );
+  </>);
 };
 
 export default Dashboard;

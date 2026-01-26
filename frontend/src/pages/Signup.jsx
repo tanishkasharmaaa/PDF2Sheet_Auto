@@ -11,6 +11,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import { signup } from "../api/auth";
 import { useState } from "react";
+import { Navbar } from "../components/Navbar";
 
 const Signup = () => {
   const [name, setName] = useState("");
@@ -65,7 +66,8 @@ const Signup = () => {
     }
   };
 
-  return (
+  return (<>
+  <Navbar/>
     <AuthLayout>
       <VStack spacing={6} align="stretch">
         <Heading size="lg">Create your account 🚀</Heading>
@@ -112,7 +114,7 @@ const Signup = () => {
         </Text>
       </VStack>
     </AuthLayout>
-  );
+  </>);
 };
 
 export default Signup;

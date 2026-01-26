@@ -19,6 +19,13 @@ import {
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+const ALLOWED_TYPES = [
+  "application/pdf",
+  "text/csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
 const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -28,19 +35,51 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
     if (!isOpen) setFile(null);
   }, [isOpen]);
 
+  const getFileFingerprint = (file) => {
+    return `${file.name}_${file.size}_${file.lastModified}`;
+  };
+
+  const getUploadedFiles = () => {
+    return JSON.parse(localStorage.getItem("uploadedInvoices") || "[]");
+  };
+
+  const saveUploadedFile = (fingerprint) => {
+    const existing = getUploadedFiles();
+    localStorage.setItem(
+      "uploadedInvoices",
+      JSON.stringify([...existing, fingerprint]),
+    );
+  };
+
   const handleChange = (e) => {
     const selectedFile = e.target.files[0];
-
     if (!selectedFile) return;
 
-    if (selectedFile.type !== "application/pdf") {
+    if (!ALLOWED_TYPES.includes(selectedFile.type)) {
       toast({
         title: "Invalid file type",
-        description: "Only PDF files are allowed",
+        description: "Only PDF, CSV, or Excel files are allowed",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
+      e.target.value = null;
+      return;
+    }
+
+    const fingerprint = getFileFingerprint(selectedFile);
+    const uploadedFiles = getUploadedFiles();
+
+    if (uploadedFiles.includes(fingerprint)) {
+      toast({
+        title: "Duplicate file detected",
+        description: "This invoice was already uploaded",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      e.target.value = null;
       return;
     }
 
@@ -54,15 +93,17 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
       setLoading(true);
 
       const formData = new FormData();
-      formData.append("invoice", file); // ✅ MUST match multer
+      formData.append("invoice", file);
 
       await axios.post(
         `${import.meta.env.VITE_BACKEND_URI}/email/receive`,
         formData,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true },
       );
+
+      // ✅ save fingerprint AFTER success
+      const fingerprint = getFileFingerprint(file);
+      saveUploadedFile(fingerprint);
 
       toast({
         title: "Invoice uploaded",
@@ -74,11 +115,11 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
 
       onClose();
       onUploadSuccess?.();
+      window.location.reload()
     } catch (error) {
       toast({
         title: "Upload failed",
-        description:
-          error.response?.data?.message || "Something went wrong",
+        description: error.response?.data?.message || "Something went wrong",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -92,9 +133,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
       <ModalOverlay bg="blackAlpha.700" />
       <ModalContent bg="#11162A" borderRadius="2xl">
-        <ModalHeader color="gray.100">
-          Upload Invoice (PDF)
-        </ModalHeader>
+        <ModalHeader color="gray.100">Upload Invoice</ModalHeader>
         <ModalCloseButton />
 
         <ModalBody>
@@ -110,9 +149,9 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
             />
 
             {!file && (
-              <Alert status="info" rounded="lg">
+              <Alert status="info" rounded="lg" bg={"blue.300"}>
                 <AlertIcon />
-                Upload one PDF invoice at a time
+                <Text>Upload one invoice (PDF, CSV, or Excel)</Text>
               </Alert>
             )}
 
@@ -125,9 +164,8 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
                 p={4}
               >
                 <Text fontWeight="semibold" mb={2}>
-                  Selected Invoice
+                  Selected File
                 </Text>
-
                 <Badge colorScheme="purple">{file.name}</Badge>
               </Box>
             )}

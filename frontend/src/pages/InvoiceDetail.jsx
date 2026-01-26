@@ -15,6 +15,7 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getInvoiceByInvoiceId } from "../api/dashboardData";
+import { Navbar } from "../components/Navbar";
 
 const InvoiceDetail = () => {
   const { invoiceId } = useParams();
@@ -70,7 +71,8 @@ const InvoiceDetail = () => {
     return extracted;
   };
 
-  return (
+  return (<>
+    <Navbar/>
     <Box px={{ base: 4, md: 8 }} py={8}>
       {/* HEADER */}
       <Box mb={8}>
@@ -166,7 +168,7 @@ const InvoiceDetail = () => {
         </Table>
       </Box>
     </Box>
-  );
+ </> );
 };
 
 const SummaryCard = ({ label, value }) => (

@@ -14,7 +14,7 @@ import Pricing from "./pages/Pricing";
 function App() {
   return (
     <Box minH="100vh">
-      <Navbar />
+      
       <Routes>
        
         <Route path="/" element={<Home />} />

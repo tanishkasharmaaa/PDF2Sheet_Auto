@@ -19,13 +19,14 @@ import { FiMenu } from "react-icons/fi";
 
 export const Navbar = () => {
   const navigate = useNavigate();
-  const isAuth = Boolean(localStorage.getItem("accessToken"));
+  const isAuth = localStorage.getItem("accessToken");
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     onClose();
     navigate("/login");
+    window.location.reload()
   };
 
   return (

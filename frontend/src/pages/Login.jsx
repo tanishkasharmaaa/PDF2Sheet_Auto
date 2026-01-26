@@ -11,6 +11,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import { loginUser } from "../api/auth";
 import { useState } from "react";
+import { Navbar } from "../components/Navbar";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -64,7 +65,8 @@ const Login = () => {
     }
   };
 
-  return (
+  return (<>
+  <Navbar/>
     <AuthLayout>
       <VStack spacing={6} align="stretch">
         <Heading size="lg">Welcome back 👋</Heading>
@@ -106,7 +108,7 @@ const Login = () => {
         </Text>
       </VStack>
     </AuthLayout>
-  );
+  </>);
 };
 
 export default Login;

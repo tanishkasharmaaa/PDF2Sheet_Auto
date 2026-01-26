@@ -15,11 +15,11 @@ import {
   Badge,
   Button,
   useBreakpointValue,
-  useToast,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { userInvoices, usersInfo } from "../api/dashboardData";
 import { useEffect, useState, useMemo } from "react";
+import { Navbar } from "../components/Navbar";
 
 const tierLimits = {
   Free: 20,
@@ -77,7 +77,8 @@ export const Invoices = () => {
     );
   }
 
-  return (
+  return (<>
+    <Navbar/>
     <Box px={{ base: 4, md: 8 }} py={8}>
       {/* HEADER */}
       <Flex justify="space-between" mb={6} align="center">
@@ -205,5 +206,5 @@ export const Invoices = () => {
         </Box>
       )}
     </Box>
-  );
+  </>);
 };
