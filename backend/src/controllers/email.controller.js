@@ -120,7 +120,7 @@ export const receiveEmail = async (req, res) => {
     const files = req.files || (req.file ? [req.file] : []);
     if (!files.length)
       return res.status(400).json({ message: "Invoice file(s) required" });
-    console.log(files,"------files")
+    
     const results = [];
 
     for (const file of files) {
@@ -139,12 +139,14 @@ export const receiveEmail = async (req, res) => {
 
           const exists = await InvoiceExtractionModel.findOne({
             invoiceNumber: row.invoiceNumber,
+            userId:user._id
           });
           if (exists) {
             results.push({
               invoiceNumber: row.invoiceNumber,
               status: "DUPLICATE_SKIPPED",
             });
+            
             continue;
           }
 
