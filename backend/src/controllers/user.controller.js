@@ -116,7 +116,7 @@ export const upgradeSubscription = async (req, res) => {
     user.subscription.endDate = endDate;
 
     // Update spreadsheet limit based on tier
-    const tierSpreadsheetLimit = { Free: 1, Basic: 2, Pro: 5 };
+    const tierSpreadsheetLimit = { Free: 1, Basic: 3, Pro: Infinity };
     user.subscription.spreadsheetLimit = tierSpreadsheetLimit[tier] || 1;
 
     await user.save();
@@ -131,26 +131,142 @@ export const upgradeSubscription = async (req, res) => {
 // Add a new spreadsheet
 export const addSpreadsheet = async (req, res) => {
   try {
-    const user = req.user;
-    const { spreadsheetId } = req.body;
-    console.log(spreadsheetId,"---------------")
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized user" });
+    }
 
-    if (!spreadsheetId) return res.status(400).json({ message: "Spreadsheet ID is required" });
+    const { spreadsheetId, name } = req.body;
+    const cleanName = name?.trim();
 
-    // Check spreadsheet limit
-    if (user.spreadsheets.length >= user.subscription.spreadsheetLimit) {
-      return res.status(403).json({
-        message: `Spreadsheet limit reached for ${user.subscription.tier} tier. Upgrade to add more.`,
+    if (!spreadsheetId || !cleanName) {
+      return res.status(400).json({
+        message: "Spreadsheet ID and name are required",
       });
     }
 
-    // Add spreadsheet
-    user.spreadsheets.push({ spreadsheetId, connectedAt: new Date() });
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const tier = (user.subscription?.tier || "free").toLowerCase();
+    const limits = { free: 1, basic: 3, pro: Infinity };
+    const limit = limits[tier];
+
+    user.spreadsheets = user.spreadsheets || [];
+
+    // 🚫 Free plan restriction
+    if (tier === "free" && user.spreadsheets.length >= 1) {
+      return res.status(403).json({
+        message: "Free plan allows only 1 spreadsheet",
+      });
+    }
+
+    // limit check
+    if (user.spreadsheets.length >= limit) {
+      return res.status(403).json({
+        message: `Spreadsheet limit reached for ${tier} plan`,
+      });
+    }
+
+    const normalizedName = cleanName.toLowerCase();
+
+    const exists = user.spreadsheets.find(
+      (s) =>
+        s.spreadsheetId === spreadsheetId ||
+        s.spreadsheetName?.toLowerCase() === normalizedName
+    );
+
+    if (exists) {
+      return res.status(400).json({
+        message: "Spreadsheet ID or name already exists",
+      });
+    }
+
+    user.spreadsheets.push({
+      spreadsheetId,
+      spreadsheetName: cleanName,
+      connectedAt: new Date(),
+    });
+
     await user.save();
 
-    res.status(200).json({ message: "Spreadsheet added successfully", spreadsheets: user.spreadsheets });
+    res.status(201).json({
+      message: "Spreadsheet added successfully",
+      spreadsheets: user.spreadsheets,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to add spreadsheet", error: error.message });
+    console.error("Failed to add spreadsheet:", error);
+    res.status(500).json({
+      message: "Failed to add spreadsheet",
+    });
+  }
+};
+
+
+export const updateSpreadsheet = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized user" });
+    }
+
+    const { index, spreadsheetId, name } = req.body;
+    const cleanName = name?.trim();
+
+    if (index === undefined || index === null) {
+      return res.status(400).json({
+        message: "Spreadsheet index is required",
+      });
+    }
+
+    if (!spreadsheetId || !cleanName) {
+      return res.status(400).json({
+        message: "Spreadsheet ID and name are required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.spreadsheets?.length) {
+      return res.status(404).json({ message: "No spreadsheets found" });
+    }
+
+    if (!user.spreadsheets[index]) {
+      return res.status(404).json({ message: "Spreadsheet not found" });
+    }
+
+    const normalizedName = cleanName.toLowerCase();
+
+    const duplicate = user.spreadsheets.find(
+      (s, i) =>
+        i !== index &&
+        (s.spreadsheetId === spreadsheetId ||
+          s.spreadsheetName?.toLowerCase() === normalizedName)
+    );
+
+    if (duplicate) {
+      return res.status(400).json({
+        message: "Spreadsheet ID or name already exists",
+      });
+    }
+
+    user.spreadsheets[index] = {
+      spreadsheetId,
+      spreadsheetName: cleanName,
+      connectedAt: new Date(),
+    };
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Spreadsheet updated successfully",
+      spreadsheets: user.spreadsheets,
+    });
+  } catch (error) {
+    console.error("Failed to update spreadsheet:", error);
+    res.status(500).json({
+      message: "Failed to update spreadsheet",
+    });
   }
 };

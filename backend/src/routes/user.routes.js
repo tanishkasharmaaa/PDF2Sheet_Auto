@@ -6,6 +6,7 @@ import {
   getCurrentUser,
   upgradeSubscription,
   addSpreadsheet,
+  updateSpreadsheet
 } from "../controllers/user.controller.js";
 import { authMiddleware } from "../middleware/authMiddlware.js";
 
@@ -19,5 +20,6 @@ router.post("/login", loginUser);
 router.get("/me", authMiddleware, getCurrentUser);
 router.post("/upgrade-subscription", authMiddleware, upgradeSubscription);
 router.post("/add-spreadsheet", authMiddleware, addSpreadsheet);
+router.put("/spreadsheet", authMiddleware, updateSpreadsheet);
 
 export default router;

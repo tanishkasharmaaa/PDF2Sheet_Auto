@@ -6,6 +6,10 @@ const spreadsheetSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    spreadsheetName:{
+     type:String,
+     required:true
+    },
     connectedAt: {
       type: Date,
       default: Date.now,

@@ -4,24 +4,33 @@ const VendorMappingSchema = new mongoose.Schema(
   {
     senderEmail: { type: String, required: true, unique: true },
 
-    vendorName: { type: String },
+    vendorName: String,
 
     fieldMappings: {
-      invoiceNumber: { type: String }, // e.g. "Column A"
-      invoiceDate: { type: String },   // e.g. "Column B"
-      totalAmount: { type: String },   // e.g. "Column C"
+      invoiceNumber: String,
+      invoiceDate: String,
+      totalAmount: String,
     },
 
     extractionRules: {
-      invoiceNumberRegex: { type: String },
-      invoiceDateRegex: { type: String },
-      totalAmountRegex: { type: String },
+      invoiceNumberRegex: String,
+      invoiceDateRegex: String,
+      totalAmountRegex: String,
     },
+
+    mappingSource: {
+      type: String,
+      enum: ["AUTO", "MANUAL"],
+      default: "AUTO",
+    },
+
+    isActive: { type: Boolean, default: true },
 
     version: { type: Number, default: 1 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+
 const VendorMappingModel = mongoose.model("VendorMap", VendorMappingSchema);
 
-export default VendorMappingModel
+export default VendorMappingModel;
