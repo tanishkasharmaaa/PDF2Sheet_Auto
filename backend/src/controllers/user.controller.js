@@ -156,7 +156,7 @@ export const addSpreadsheet = async (req, res) => {
 
     user.spreadsheets = user.spreadsheets || [];
 
-    // 🚫 Free plan restriction
+    // Free plan restriction
     if (tier === "free" && user.spreadsheets.length >= 1) {
       return res.status(403).json({
         message: "Free plan allows only 1 spreadsheet",
@@ -268,5 +268,34 @@ export const updateSpreadsheet = async (req, res) => {
     res.status(500).json({
       message: "Failed to update spreadsheet",
     });
+  }
+};
+
+export const deleteSpreadsheet = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { index } = req.body;
+
+    if (index === undefined || index === null) {
+      return res.status(400).json({ message: "Spreadsheet index required" });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user || !user.spreadsheets[index]) {
+      return res.status(404).json({ message: "Spreadsheet not found" });
+    }
+
+    // 🗑 remove spreadsheet
+    user.spreadsheets.splice(index, 1);
+    await user.save();
+
+    res.status(200).json({
+      message: "Spreadsheet deleted successfully",
+      spreadsheets: user.spreadsheets,
+    });
+  } catch (error) {
+    console.error("Delete spreadsheet error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
