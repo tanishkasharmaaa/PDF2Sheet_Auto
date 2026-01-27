@@ -7,12 +7,24 @@ import {
   VStack,
   SimpleGrid,
   Badge,
-  Stack
+  Stack,
+   Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  OrderedList,
+  ListItem,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
 
 const Home = () => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   return (
     <Box>
       <Navbar/>
@@ -55,13 +67,15 @@ const Home = () => {
             </Button>
 
             <Button
-              color="white"
-              variant="outline"
-              size="lg"
-              _hover={{color:"black",bgColor:"whiteAlpha.900"}}
-            >
-              See How It Works
-            </Button>
+  color="white"
+  variant="outline"
+  size="lg"
+  onClick={onOpen}
+  _hover={{ color: "black", bgColor: "whiteAlpha.900" }}
+>
+  See How It Works
+</Button>
+
           </Flex>
         </VStack>
       </Flex>
@@ -233,6 +247,59 @@ const Home = () => {
           </Button>
         </VStack>
       </Flex>
+      <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+  <ModalOverlay bg="blackAlpha.700" />
+  <ModalContent bg="#11162A" borderRadius="2xl">
+    <ModalHeader color="white">
+      How PDF2Sheet Auto Works
+    </ModalHeader>
+    <ModalCloseButton color="white" />
+
+    <ModalBody>
+      <Text color="gray.400" mb={4}>
+        Follow these simple steps to start automating your invoice workflow:
+      </Text>
+
+      <OrderedList spacing={3} color="gray.300">
+        <ListItem>
+          <b>Login or Signup</b> to your PDF2Sheet Auto account.
+        </ListItem>
+
+        <ListItem>
+          Go to your <b>Profile</b> page.
+        </ListItem>
+
+        <ListItem>
+          Scroll down to <b>Connect Google Spreadsheet</b>.
+        </ListItem>
+
+        <ListItem>
+          Click on <b>“Show Instructions”</b> and follow the steps to share
+          your spreadsheet with our service account.
+        </ListItem>
+
+        <ListItem>
+          Once connected, return to the <b>Dashboard</b>.
+        </ListItem>
+
+        <ListItem>
+          Start <b>uploading invoices</b> or forward them via email —
+          we’ll extract the data and push it to your spreadsheet automatically.
+        </ListItem>
+      </OrderedList>
+    </ModalBody>
+
+    <ModalFooter>
+      <Button variant="ghost" mr={3} onClick={onClose}>
+        Close
+      </Button>
+      <Button as={Link} to="/signup" colorScheme="brand">
+        Get Started
+      </Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+
     </Box>
   );
 };
