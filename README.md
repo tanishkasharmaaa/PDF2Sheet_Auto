@@ -9,10 +9,11 @@ It eliminates manual data entry while providing visibility into usage, confidenc
 
 > Add screenshots or GIFs of your product UI here
 
-![Dashboard](./screenshots/dashboard.png)
-![Invoices Page](./screenshots/invoices.png)
-![Pricing Page](./screenshots/pricing.png)
-![Profile Page](./screenshots/profile.png)
+![Home](https://github.com/tanishkasharmaaa/PDF2Sheet_Auto/blob/main/frontend/public/Main.png)
+![Dashboard](https://github.com/tanishkasharmaaa/PDF2Sheet_Auto/blob/main/frontend/public/Dashboard.png)
+![Invoices Page](https://github.com/tanishkasharmaaa/PDF2Sheet_Auto/blob/main/frontend/public/Invoices.png)
+![Pricing Page](https://github.com/tanishkasharmaaa/PDF2Sheet_Auto/blob/main/frontend/public/Pricing.png)
+![Profile Page](https://github.com/tanishkasharmaaa/PDF2Sheet_Auto/blob/main/frontend/public/Profile.png)
 
 📌 Create a `screenshots/` folder in your repo and place images there.
 
