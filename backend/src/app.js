@@ -12,7 +12,7 @@ dotenv.config()
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL||"http://localhost:5173", // frontend URL
+  origin: process.env.FRONTEND_URL
   credentials: true,               // allow cookies
 }));
 
