@@ -24,10 +24,10 @@ const FakePaymentModal = ({ isOpen, onClose, plan }) => {
     try {
       setLoading(true);
 
-      // fake delay like Stripe
+ 
       await new Promise((res) => setTimeout(res, 1500));
 
-      // 🔥 call your existing upgrade route
+ 
       await axios.post(
         `${import.meta.env.VITE_BACKEND_URI}/users/upgrade-subscription`,
         { tier: plan.name },

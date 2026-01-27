@@ -253,7 +253,7 @@ const Profile = () => {
             </Badge>
           </Box>
 
-          {/* Subscription Stats */}
+
           <Box
             p={6}
             bg="whiteAlpha.50"
@@ -283,7 +283,7 @@ const Profile = () => {
             <Heading size="md">₹{totalAmount.toLocaleString()}</Heading>
           </Box>
 
-          {/* Spreadsheet Info */}
+
           <Box
             p={6}
             bg="whiteAlpha.50"
@@ -298,7 +298,7 @@ const Profile = () => {
             {usersData?.spreadsheets?.length > 0 ? (
               subscriptionTier !== "Free" ? (
                 <>
-                  {/* Select existing spreadsheet */}
+
                   <Select
                     mb={2}
                     bgColor={"black"}
@@ -385,7 +385,7 @@ const Profile = () => {
                   </Flex>
                 </>
               ) : (
-                // Free plan: show single spreadsheet
+
                 <>
                   <Text>
                     Spreadsheet Name:{" "}
@@ -404,7 +404,7 @@ const Profile = () => {
                     colorScheme="brand"
                     mt={2}
                     onClick={() => {
-                      setIsAddMode(false); // Edit mode
+                      setIsAddMode(false);
                       setSelectedSheetIndex(0);
                       setSpreadsheetIdInput(
                         usersData.spreadsheets[0].spreadsheetId,
@@ -420,7 +420,7 @@ const Profile = () => {
                 </>
               )
             ) : (
-              // No spreadsheet connected
+
               <>
                 <Text color="red.400" mb={2}>
                   ⚠ You have not connected a spreadsheet. You cannot upload
@@ -454,10 +454,10 @@ const Profile = () => {
           </Flex>
         </VStack>
 
-        {/* Instructions Modal */}
+
         <SpreadsheetHelpModal isOpen={isOpen} onClose={onClose} />
 
-        {/* Edit/Add Spreadsheet Modal */}
+
         <Modal isOpen={isEditOpen} onClose={onEditClose} isCentered>
           <ModalOverlay bg="blackAlpha.600" />
           <ModalContent

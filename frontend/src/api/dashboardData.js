@@ -10,7 +10,6 @@ export async function usersInfo() {
       },
     });
 
-    // Handle unauthorized / error responses
     if (!res.ok) {
       throw new Error("Unauthorized or failed to fetch user info");
     }
@@ -62,16 +61,17 @@ export async function uploadInvoices(files, spreadsheetId) {
     }
 
     const formData = new FormData();
-    files.forEach((file) => formData.append("invoices", file));
 
-    // Append the selected spreadsheetId
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
     formData.append("spreadsheetId", spreadsheetId);
 
-    console.log("Uploading files:", files, "to spreadsheet:", spreadsheetId);
 
     const res = await fetch(`${BACKEND_URL}/email/receive`, {
       method: "POST",
-      credentials: "include",
+      credentials:"include",
       body: formData,
     });
 

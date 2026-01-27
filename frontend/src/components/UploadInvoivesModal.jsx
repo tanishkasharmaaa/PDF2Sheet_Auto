@@ -14,10 +14,11 @@ import {
   Box,
   Select,
   useToast,
-  Alert,
-  AlertIcon,
+  HStack,
+  IconButton,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
+import { CloseIcon } from "@chakra-ui/icons";
 import axios from "axios";
 
 const ALLOWED_TYPES = [
@@ -28,23 +29,27 @@ const ALLOWED_TYPES = [
 ];
 
 const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSpreadsheet, setSelectedSpreadsheet] = useState(null);
   const [userData, setUserData] = useState({});
   const toast = useToast();
 
+  const removeFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   useEffect(() => {
     if (!isOpen) {
-      setFile(null);
+      setFiles([]);
       setSelectedSpreadsheet(null);
     }
 
-    // Load user data from localStorage
-    const storedUserData = JSON.parse(localStorage.getItem("usersData") || "{}");
+    const storedUserData = JSON.parse(
+      localStorage.getItem("usersData") || "{}",
+    );
     setUserData(storedUserData);
 
-    // Set default spreadsheet for Free plan or first spreadsheet
     if (storedUserData?.spreadsheets?.length > 0) {
       setSelectedSpreadsheet(storedUserData.spreadsheets[0]);
     }
@@ -62,13 +67,13 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
     const existing = getUploadedFiles();
     localStorage.setItem(
       "uploadedInvoices",
-      JSON.stringify([...existing, fingerprint])
+      JSON.stringify([...existing, fingerprint]),
     );
   };
 
   const handleChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
+    const selectedFiles = Array.from(e.target.files || []);
+    if (!selectedFiles.length) return;
 
     const userId = userData.userId;
     if (!userId) {
@@ -79,32 +84,42 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
         duration: 3000,
         isClosable: true,
       });
-      e.target.value = null;
       return;
     }
 
-    const fingerprint = getFileFingerprint(selectedFile, userId);
-    if (getUploadedFiles().includes(fingerprint)) {
-      toast({
-        title: "Duplicate file detected",
-        description: "You already uploaded this invoice",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      e.target.value = null;
-      return;
-    }
+    const existingFingerprints = getUploadedFiles();
 
-    setFile(selectedFile);
+    const newFiles = selectedFiles.filter((file) => {
+      const fingerprint = getFileFingerprint(file, userId);
+
+      if (existingFingerprints.includes(fingerprint)) {
+        toast({
+          title: "Duplicate file skipped",
+          description: `${file.name} already uploaded`,
+          status: "warning",
+          duration: 2000,
+          isClosable: true,
+        });
+        return false;
+      }
+
+      return true;
+    });
+
+    if (!newFiles.length) return;
+
+    setFiles((prev) => [...prev, ...newFiles]);
+
+    e.target.value = "";
   };
 
   const handleSubmit = async () => {
-    if (!file) return;
+    if (!files.length) return;
+
     if (!selectedSpreadsheet) {
       toast({
         title: "No spreadsheet selected",
-        description: "Please select a spreadsheet to upload the invoice",
+        description: "Please select a spreadsheet",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -116,22 +131,23 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
       setLoading(true);
 
       const formData = new FormData();
-      formData.append("invoice", file);
+      files.forEach((file) => formData.append("files", file));
       formData.append("spreadsheetId", selectedSpreadsheet.spreadsheetId);
 
       await axios.post(
         `${import.meta.env.VITE_BACKEND_URI}/email/receive`,
         formData,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
-      // Save fingerprint AFTER success
-      const fingerprint = getFileFingerprint(file, userData.userId);
-      saveUploadedFile(fingerprint);
+      files.forEach((file) => {
+        const fingerprint = getFileFingerprint(file, userData.userId);
+        saveUploadedFile(fingerprint);
+      });
 
       toast({
-        title: "Invoice uploaded",
-        description: `Invoice will be added to "${selectedSpreadsheet.spreadsheetName || selectedSpreadsheet.spreadsheetId}"`,
+        title: "Invoices uploaded",
+        description: `${files.length} invoice(s) uploaded successfully`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -164,38 +180,45 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
 
         <ModalBody>
           <VStack spacing={4} align="stretch">
-            {/* Spreadsheet selector for Basic/Pro */}
-            {subscriptionTier !== "Free" && userData?.spreadsheets?.length > 0 && (
-              <Box>
-                <Text mb={1} color="gray.400">
-                  Select Spreadsheet:
-                </Text>
-                <Select
-                  bg="#0B0F1A"
-                  borderColor="gray.700"
-                  _hover={{ borderColor: "brand.500" }}
-                  _focus={{ borderColor: "brand.500" }}
-                  value={selectedSpreadsheet?.spreadsheetId || ""}
-                  onChange={(e) => {
-                    const sheet = userData.spreadsheets.find(
-                      (s) => s.spreadsheetId === e.target.value
-                    );
-                    setSelectedSpreadsheet(sheet);
-                  }}
-                >
-                  {userData.spreadsheets.map((sheet, idx) => (
-                    <option key={idx} value={sheet.spreadsheetId}>
-                      {sheet.spreadsheetName || sheet.spreadsheetId}
+            {subscriptionTier !== "Free" &&
+              userData?.spreadsheets?.length > 0 && (
+                <Box>
+                  <Text mb={1} color="gray.400">
+                    Select Spreadsheet:
+                  </Text>
+                  <Select
+                    bg="#0B0F1A"
+                    borderColor="gray.700"
+                    _hover={{ borderColor: "brand.500" }}
+                    _focus={{ borderColor: "brand.500" }}
+                    value={selectedSpreadsheet?.spreadsheetId || ""}
+                    onChange={(e) => {
+                      const sheet = userData.spreadsheets.find(
+                        (s) => s.spreadsheetId === e.target.value,
+                      );
+                      setSelectedSpreadsheet(sheet);
+                    }}
+                  >
+                    <option style={{ color: "black" }} value="">
+                      Select Spreadsheet
                     </option>
-                  ))}
-                </Select>
-              </Box>
-            )}
+                    {userData?.spreadsheets.map((sheet, idx) => (
+                      <option
+                        style={{ color: "black" }}
+                        key={idx}
+                        value={sheet.spreadsheetId}
+                      >
+                        {sheet.spreadsheetName || sheet.spreadsheetId}
+                      </option>
+                    ))}
+                  </Select>
+                </Box>
+              )}
 
-            {/* File input */}
             <Input
               type="file"
               accept=".pdf,.csv,.xlsx,.xls"
+              multiple
               onChange={handleChange}
               bg="#0B0F1A"
               borderColor="gray.700"
@@ -203,14 +226,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
               _focus={{ borderColor: "brand.500" }}
             />
 
-            {!file && (
-              <Alert status="info" rounded="lg" bg={"blue.300"}>
-                <AlertIcon />
-                <Text>Upload one invoice (PDF, CSV, or Excel)</Text>
-              </Alert>
-            )}
-
-            {file && (
+            {files?.length > 0 && (
               <Box
                 borderWidth="1px"
                 borderColor="gray.700"
@@ -219,9 +235,39 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
                 p={4}
               >
                 <Text fontWeight="semibold" mb={2}>
-                  Selected File
+                  Selected Files ({files.length})
                 </Text>
-                <Badge colorScheme="purple">{file.name}</Badge>
+
+                <VStack align="stretch" spacing={2}>
+                  {files.map((file, idx) => (
+                    <HStack
+                      key={idx}
+                      bg="#0B0F1A"
+                      border="1px solid"
+                      borderColor="gray.700"
+                      rounded="md"
+                      px={2}
+                      py={1}
+                      justify="space-between"
+                    >
+                      <HStack>
+                        <IconButton
+                          size="xs"
+                          icon={<CloseIcon />}
+                          aria-label="Remove file"
+                          variant="ghost"
+                          colorScheme="red"
+                          onClick={() => removeFile(idx)}
+                        />
+                        <Text fontSize="sm" color="gray.200">
+                          {file.name}
+                        </Text>
+                      </HStack>
+
+                      <Badge colorScheme="purple">Ready</Badge>
+                    </HStack>
+                  ))}
+                </VStack>
               </Box>
             )}
           </VStack>
@@ -235,7 +281,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
             colorScheme="brand"
             onClick={handleSubmit}
             isLoading={loading}
-            isDisabled={!file}
+            isDisabled={!files.length}
           >
             Upload
           </Button>

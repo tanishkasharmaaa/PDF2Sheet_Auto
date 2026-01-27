@@ -15,7 +15,7 @@ export async function addSpreadSheet(spreadsheetId, name, index = null) {
       body: JSON.stringify({
         spreadsheetId,
         name,
-        index, // 👈 null = add new, number = edit existing
+        index, 
       }),
     });
 

@@ -31,7 +31,7 @@ export const Navbar = () => {
 
   return (
     <>
-      {/* NAVBAR */}
+
       <Flex
         position="sticky"
         top="0"
@@ -39,17 +39,17 @@ export const Navbar = () => {
         px={{ base: 4, md: 8 }}
         py={4}
         align="center"
-        bg="rgba(11,15,26,0.85)" // theme background
+        bg="rgba(11,15,26,0.85)"
         backdropFilter="blur(14px)"
         borderBottom="1px solid"
         borderColor="whiteAlpha.200"
       >
-        {/* Logo */}
+
         <Heading
           as={Link}
           to="/"
           size="md"
-          color="brand.500" // theme brand color
+          color="brand.500"
           letterSpacing="wide"
           _hover={{ textDecoration: "none", opacity: 0.9 }}
         >
@@ -58,7 +58,7 @@ export const Navbar = () => {
 
         <Spacer />
 
-        {/* DESKTOP NAV */}
+      
         <HStack spacing={3} display={{ base: "none", md: "flex" }}>
           {!isAuth ? (
             <>
@@ -136,7 +136,7 @@ export const Navbar = () => {
           )}
         </HStack>
 
-        {/* MOBILE MENU BUTTON */}
+       
         <IconButton
           aria-label="Open menu"
           icon={<FiMenu />}
@@ -148,7 +148,7 @@ export const Navbar = () => {
         />
       </Flex>
 
-      {/* MOBILE DRAWER */}
+     
       <Drawer isOpen={isOpen} placement="right" onClose={onClose}>
         <DrawerOverlay />
         <DrawerContent bg="#0B0F1A">

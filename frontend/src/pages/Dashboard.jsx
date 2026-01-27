@@ -31,7 +31,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  // Fetch user info and invoices
   useEffect(() => {
     async function getData() {
       setLoading(true);
@@ -52,12 +51,11 @@ const Dashboard = () => {
     getData();
   }, [navigate]);
 
-  // Extract subscription info
   const subscriptionTier = usersData?.subscription?.tier || "Free";
   const invoiceLimit = tierLimits[subscriptionTier];
   const invoicesUsed = listOfInvoices.length;
 
-  // Memoized calculations for avg confidence and total amount
+
   const { avgConfidence, totalAmount } = useMemo(() => {
     if (listOfInvoices.length === 0) return { avgConfidence: 0, totalAmount: 0 };
 
@@ -76,7 +74,7 @@ const Dashboard = () => {
     };
   }, [listOfInvoices]);
 
-  // Handle upload respecting subscription limit
+
   const handleUploadClick = () => {
     if (invoicesUsed >= invoiceLimit) {
       if (subscriptionTier === "Pro") {
@@ -106,15 +104,15 @@ const Dashboard = () => {
   return (<>
   <Navbar />
     <Box px={{ base: 4, md: 8 }} py={8}>
-      {/* HEADER */}
+      
       <Box mb={10}>
         <Heading size="lg">Welcome back, {usersData?.name || "User"} 👋</Heading>
         <Text color="gray.400">Here’s a quick overview of your invoice automation</Text>
       </Box>
 
-      {/* STATS */}
+     
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={12}>
-        {/* Invoices Used */}
+       
         <Box
           p={6}
           bg="whiteAlpha.50"
@@ -141,7 +139,7 @@ const Dashboard = () => {
           )}
         </Box>
 
-        {/* Subscription Tier */}
+      
         <Box
           p={6}
           bg="whiteAlpha.50"
@@ -158,7 +156,7 @@ const Dashboard = () => {
           </Text>
         </Box>
 
-        {/* Avg Confidence & Total Amount */}
+       
         <Box
           p={6}
           bg="whiteAlpha.50"
@@ -177,7 +175,7 @@ const Dashboard = () => {
         </Box>
       </SimpleGrid>
 
-      {/* UPLOAD */}
+     
       <Box
         p={8}
         mb={12}
@@ -205,7 +203,7 @@ const Dashboard = () => {
         </VStack>
       </Box>
 
-      {/* RECENT ACTIVITY */}
+     
       <Box>
         <Heading size="md" mb={4}>Recent Invoices</Heading>
 

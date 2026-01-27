@@ -49,7 +49,7 @@ export const Invoices = () => {
     fetchData();
   }, [navigate]);
 
-  // Memoized calculations
+ 
   const { avgConfidence, totalAmount, invoicesUsed, invoiceLimit } = useMemo(() => {
     const invoicesUsed = invoices.length;
     const subscriptionTier = userData?.subscription?.tier || "Free";
@@ -80,13 +80,12 @@ export const Invoices = () => {
   return (<>
     <Navbar/>
     <Box px={{ base: 4, md: 8 }} py={8}>
-      {/* HEADER */}
+  
       <Flex justify="space-between" mb={6} align="center">
         <Heading size="lg">Invoices</Heading>
         
       </Flex>
 
-      {/* TOTAL & AVG CONFIDENCE */}
       <Flex mb={6} gap={6} wrap="wrap">
         <Box p={4} bg="whiteAlpha.50" borderRadius="2xl" flex="1">
           <Text color="gray.400">Invoices Used</Text>
@@ -112,7 +111,6 @@ export const Invoices = () => {
         </Box>
       </Flex>
 
-      {/* DESKTOP TABLE */}
       {isDesktop ? (
         <Box
           bg="whiteAlpha.50"
@@ -169,7 +167,7 @@ export const Invoices = () => {
           </Table>
         </Box>
       ) : (
-        /* MOBILE CARDS */
+
         <SimpleGrid columns={1} spacing={4}>
           {invoices.map((inv) => (
             <Box
@@ -191,7 +189,7 @@ export const Invoices = () => {
         </SimpleGrid>
       )}
 
-      {/* EMPTY STATE */}
+
       {invoices.length === 0 && (
         <Box
           p={10}

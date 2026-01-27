@@ -1,6 +1,5 @@
 const BASE_URL = import.meta.env.VITE_BACKEND_URI;
 
-/* ================= SIGNUP ================= */
 export async function signup(name, email, password) {
   try {
     const res = await fetch(`${BASE_URL}/users/register`, {
@@ -24,7 +23,6 @@ export async function signup(name, email, password) {
   }
 }
 
-/* ================= LOGIN ================= */
 export async function loginUser(email, password) {
   try {
     const res = await fetch(`${BASE_URL}/users/login`, {
@@ -32,7 +30,7 @@ export async function loginUser(email, password) {
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include", // for cookies (refresh token)
+      credentials: "include", 
       body: JSON.stringify({ email, password }),
     });
 

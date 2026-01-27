@@ -159,7 +159,6 @@ const Pricing = () => {
                     ))}
                   </Stack>
 
-                  {/* ✅ Button Logic */}
                   {isCurrent && (
                     <Button
                       size="lg"

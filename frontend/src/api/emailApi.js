@@ -4,7 +4,7 @@ export const uploadMultipleInvoices = async (files) => {
   const formData = new FormData();
 
   files.forEach((file) => {
-    formData.append("invoices", file); // must match upload.array("invoices")
+    formData.append("invoices", file);
   });
 
   const res = await axios.post(

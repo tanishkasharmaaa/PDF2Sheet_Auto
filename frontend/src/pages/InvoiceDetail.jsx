@@ -51,14 +51,14 @@ const InvoiceDetail = () => {
 
   const confidencePercentage = invoice.confidenceScore * 100;
 
-  // Helper: render extracted text
+ 
   const renderExtractedText = (extracted) => {
     if (!extracted) return "-";
 
-    // If rawText exists, render it
+    
     if (extracted.rawText) return extracted.rawText;
 
-    // If it's a structured object, map over keys
+  
     if (typeof extracted === "object") {
       return Object.entries(extracted).map(([key, value]) => (
         <Text key={key} whiteSpace="pre-wrap">
@@ -67,14 +67,13 @@ const InvoiceDetail = () => {
       ));
     }
 
-    // fallback: string
     return extracted;
   };
 
   return (<>
     <Navbar/>
     <Box px={{ base: 4, md: 8 }} py={8}>
-      {/* HEADER */}
+    
       <Box mb={8}>
         <Heading size="lg">Invoice {invoice.invoiceNumber}</Heading>
         <Badge
@@ -91,7 +90,6 @@ const InvoiceDetail = () => {
         </Badge>
       </Box>
 
-      {/* SUMMARY */}
       <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={12}>
         <SummaryCard label="Vendor" value={invoice.senderEmail} />
         <SummaryCard label="Invoice Date" value={invoice.invoiceDate} />
@@ -122,7 +120,7 @@ const InvoiceDetail = () => {
         </Box>
       </SimpleGrid>
 
-      {/* EXTRACTED DATA */}
+
       <Box
         bg="whiteAlpha.50"
         border="1px solid"
