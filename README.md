@@ -15,7 +15,6 @@ It eliminates manual data entry while providing visibility into usage, confidenc
 ![Pricing Page](https://github.com/tanishkasharmaaa/PDF2Sheet_Auto/blob/main/frontend/public/Pricing.png)
 ![Profile Page](https://github.com/tanishkasharmaaa/PDF2Sheet_Auto/blob/main/frontend/public/Profile.png)
 
-📌 Create a `screenshots/` folder in your repo and place images there.
 
 ---
 
