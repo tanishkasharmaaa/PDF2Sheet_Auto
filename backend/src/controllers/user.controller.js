@@ -1,24 +1,24 @@
-// src/controllers/user.controller.js
+
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import  User  from "../models/Users.js";
 import dotenv from "dotenv"
 dotenv.config()
 
-// Register a new user
+
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
     console.log(name,email,password)
 
-    // Check if user exists
+    
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "Email already in use" });
 
-    // Hash password
+    
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    
     const user = await User.create({
       name,
       email,
@@ -33,36 +33,36 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// Login user
+
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
+    
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Compare hashed password
+    
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Generate JWT
+    
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    // Set cookie
+    
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      maxAge: 1 * 34 * 60 * 60 * 1000, // 1 hour
+      maxAge: 1 * 34 * 60 * 60 * 1000, 
     });
 
     return res.status(200).json({
@@ -79,11 +79,10 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Get current user info
+
 export const getCurrentUser = async (req, res) => {
   try {
     const user = req.user;
-    console.log(user,"----------------") 
     res.status(200).json({ 
       userId:user._id,
       name: user.name,
@@ -97,11 +96,11 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
-// Upgrade subscription
+
 export const upgradeSubscription = async (req, res) => {
   try {
     const user = req.user;
-    const { tier, durationInMonths } = req.body; // e.g., tier = "Pro", durationInMonths = 1
+    const { tier, durationInMonths } = req.body; 
 
     const validTiers = ["Free", "Basic", "Pro"];
     if (!validTiers.includes(tier)) return res.status(400).json({ message: "Invalid tier" });
@@ -110,12 +109,11 @@ export const upgradeSubscription = async (req, res) => {
     const endDate = new Date();
     endDate.setMonth(now.getMonth() + (durationInMonths || 1));
 
-    // Update subscription
+    
     user.subscription.tier = tier;
     user.subscription.startDate = now;
     user.subscription.endDate = endDate;
 
-    // Update spreadsheet limit based on tier
     const tierSpreadsheetLimit = { Free: 1, Basic: 3, Pro: Infinity };
     user.subscription.spreadsheetLimit = tierSpreadsheetLimit[tier] || 1;
 
@@ -128,7 +126,7 @@ export const upgradeSubscription = async (req, res) => {
   }
 };
 
-// Add a new spreadsheet
+
 export const addSpreadsheet = async (req, res) => {
   try {
     const userId = req.user?._id;
@@ -156,14 +154,14 @@ export const addSpreadsheet = async (req, res) => {
 
     user.spreadsheets = user.spreadsheets || [];
 
-    // Free plan restriction
+    
     if (tier === "free" && user.spreadsheets.length >= 1) {
       return res.status(403).json({
         message: "Free plan allows only 1 spreadsheet",
       });
     }
 
-    // limit check
+    
     if (user.spreadsheets.length >= limit) {
       return res.status(403).json({
         message: `Spreadsheet limit reached for ${tier} plan`,
@@ -286,7 +284,7 @@ export const deleteSpreadsheet = async (req, res) => {
       return res.status(404).json({ message: "Spreadsheet not found" });
     }
 
-    // 🗑 remove spreadsheet
+  
     user.spreadsheets.splice(index, 1);
     await user.save();
 

@@ -1,4 +1,4 @@
-// services/googleSheets.js
+
 import { google } from "googleapis";
 import dotenv from "dotenv";
 dotenv.config();
@@ -8,7 +8,6 @@ export const pushInvoiceToSheet = async (spreadsheetId, invoice) => {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not defined in env variables");
   }
 
-  // Parse the JSON from env and fix newlines in private_key
   let serviceAccount;
   try {
     serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);

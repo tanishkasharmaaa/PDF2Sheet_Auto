@@ -6,7 +6,7 @@ const InvoiceExtractionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true, // fast user-based queries
+      index: true, 
     },
 
     senderEmail: {
@@ -60,19 +60,15 @@ const InvoiceExtractionSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // createdAt & updatedAt
+    timestamps: true,
   }
 );
 
-/* ---------- Indexes for Performance ---------- */
-
-// Prevent duplicate invoice numbers per user
 InvoiceExtractionSchema.index(
   { userId: 1, invoiceNumber: 1 },
   { unique: true, sparse: true }
 );
 
-// Optional: time-based queries
 InvoiceExtractionSchema.index({ createdAt: -1 });
 
 const InvoiceExtractionModel = mongoose.model(

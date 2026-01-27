@@ -15,7 +15,6 @@ export const createOrUpdateVendorMap = async (req, res) => {
 
     const existingMap = await VendorMappingModel.findOne({ senderEmail });
 
-    // Update existing mapping (versioning)
     if (existingMap) {
       existingMap.fieldMappings = fieldMappings || existingMap.fieldMappings;
       existingMap.extractionRules =
@@ -31,7 +30,6 @@ export const createOrUpdateVendorMap = async (req, res) => {
       });
     }
 
-    // Create new mapping
     const newMap = await VendorMap.create({
       senderEmail,
       vendorName,

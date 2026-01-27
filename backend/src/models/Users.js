@@ -29,10 +29,10 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true, // creates UNIQUE INDEX
+      unique: true, 
       lowercase: true,
       trim: true,
-      index: true, // fast login lookup
+      index: true, 
     },
 
     password: {
@@ -40,13 +40,11 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    /* ---------------- Google Sheets ---------------- */
     spreadsheets: {
       type: [spreadsheetSchema],
       default: [],
     },
 
-    /* ---------------- Subscription ---------------- */
     subscription: {
       tier: {
         type: String,
@@ -68,12 +66,8 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-/* -------- Compound Indexes -------- */
-
-// If you ever query users by email + tier (admin / analytics)
 userSchema.index({ email: 1, "subscription.tier": 1 });
 
-// If you need to check spreadsheet ownership quickly
 userSchema.index({ "spreadsheets.spreadsheetId": 1 });
 
 const User = mongoose.model("User", userSchema);

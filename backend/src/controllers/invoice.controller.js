@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import InvoiceExtractionModel from "../models/InvoiceExtraction.js";
-import { pushInvoiceToSheet } from "../services/googleSheets.js";
 import dotenv from "dotenv"
 
 dotenv.config()
@@ -33,7 +32,6 @@ export const getInvoiceByInvoiceId = async (req, res) => {
     const { invoiceId } = req.params;
     console.log("Invoice ID:", invoiceId);
 
-    // Validate invoiceId
     if (!invoiceId || !mongoose.Types.ObjectId.isValid(invoiceId)) {
       return res.status(400).json({
         success: false,
@@ -41,7 +39,6 @@ export const getInvoiceByInvoiceId = async (req, res) => {
       });
     }
 
-    // Fetch invoice
     const invoice = await InvoiceExtractionModel.findById(invoiceId).lean();
 
     if (!invoice) {
@@ -51,14 +48,12 @@ export const getInvoiceByInvoiceId = async (req, res) => {
       });
     }
 
-    // Parse extractedText safely
     let extractedData = {};
     if (invoice.extractedText) {
       if (typeof invoice.extractedText === "string") {
         try {
           extractedData = JSON.parse(invoice.extractedText);
         } catch {
-          // If JSON.parse fails, store as rawText
           extractedData = { rawText: invoice.extractedText };
         }
       } else if (typeof invoice.extractedText === "object") {
@@ -68,14 +63,13 @@ export const getInvoiceByInvoiceId = async (req, res) => {
       }
     }
 
-    // Respond with safe data
     return res.status(200).json({
       success: true,
       data: {
         id: invoice._id,
         senderEmail: invoice.senderEmail,
         fileName: invoice.fileName,
-        extractedText: extractedData, // always object
+        extractedText: extractedData, 
         invoiceNumber: invoice.invoiceNumber,
         invoiceDate: invoice.invoiceDate,
         totalAmount: invoice.totalAmount,

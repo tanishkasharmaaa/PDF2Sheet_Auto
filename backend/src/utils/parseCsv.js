@@ -11,7 +11,7 @@ export const parseCSVInvoice = (buffer) => {
   const text = buffer.toString("utf-8");
 
   const records = parse(text, {
-    columns: true,          // use first row as keys
+    columns: true, 
     skip_empty_lines: true,
     trim: true,
   });

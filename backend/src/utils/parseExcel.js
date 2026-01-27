@@ -1,4 +1,4 @@
-// parseExcel.js
+
 import XLSX from "xlsx";
 
 export const parseExcelInvoice = (buffer) => {
@@ -9,8 +9,6 @@ export const parseExcelInvoice = (buffer) => {
   const worksheet = workbook.Sheets[sheetName];
   const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-  // Make sure your column names match what your controller expects
-  // e.g., invoiceNumber, date, total
   return jsonData.map((row) => ({
     invoiceNumber: row.invoiceNumber || row["Invoice Number"] || "",
     date: row.date || row["Invoice Date"] || "",

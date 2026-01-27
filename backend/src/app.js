@@ -12,8 +12,8 @@ dotenv.config()
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true,               // allow cookies
+  origin: process.env.FRONTEND_URL||"http://localhost:5173",
+  credentials: true,        
 }));
 
 app.use(
@@ -22,7 +22,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true, // only secure in prod
+      secure: true,
       httpOnly: true,
       sameSite: "none",
     },
@@ -30,7 +30,7 @@ app.use(
 );
 
 app.use(express.json());
-app.use(cookieParser()); // ✅ enable cookies
+app.use(cookieParser());
 
 app.use("/email", emailRoutes);
 app.use("/vendor-maps", vendorMappingRoutes);
