@@ -5,6 +5,10 @@ It eliminates manual data entry while providing visibility into usage, confidenc
 
 ---
 
+
+🔗 **Live Demo:** https://pdf-2-sheet-auto.vercel.app  
+🔗 **Backend API:** https://pdf2sheet-auto.onrender.com  
+
 ## 🖼️ Product Screenshots
 
 > Add screenshots or GIFs of your product UI here
