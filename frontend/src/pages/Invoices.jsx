@@ -111,11 +111,11 @@ export const Invoices = () => {
         {/* Filters */}
         <Flex gap={4} mb={6} wrap="wrap">
           <Select
-            placeholder="Filter by Spreadsheet"
             value={filterSpreadsheet}
             onChange={(e) => setFilterSpreadsheet(e.target.value)}
             maxW="250px"
           >
+            <option value="" style={{color:"black"}}>Filter By Spreadsheet</option>
             {userData.spreadsheets.map((ele, index) => (
               <option key={index} value={ele.spreadsheetId} style={{color:"black"}}>
                 {ele.spreadsheetName}

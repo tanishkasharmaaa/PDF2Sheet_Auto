@@ -77,6 +77,7 @@ const Profile = () => {
       setSelectedSheetIndex(0);
 
       const invoicesData = await userInvoices();
+      console.log(invoicesData)
       setListOfInvoices(invoicesData?.invoices || []);
       setLoading(false);
     }
@@ -85,7 +86,7 @@ const Profile = () => {
 
   const subscriptionTier = usersData?.subscription?.tier || "Free";
   const invoiceLimit = tierLimits[subscriptionTier];
-  const invoicesUsed = usersData?.subscription?.invoicesUploaded || 0;
+  const invoicesUsed = listOfInvoices?.length || 0;
 
   const spreadsheetLimit = spreadsheetLimits[subscriptionTier];
   const spreadsheetsUsed = usersData?.spreadsheets?.length || 0;
