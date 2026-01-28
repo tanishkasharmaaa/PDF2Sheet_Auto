@@ -274,7 +274,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, onUploadSuccess }) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="ghost" mr={3} onClick={onClose}>
+          <Button variant="ghost" mr={3} onClick={onClose} color={'white'} border={'1px solid white'} _hover={{bgColor:"white",color:"black"}}>
             Cancel
           </Button>
           <Button

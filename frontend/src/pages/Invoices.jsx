@@ -15,6 +15,8 @@ import {
   Badge,
   Button,
   useBreakpointValue,
+  Select,
+  Input,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
@@ -32,6 +34,10 @@ export const Invoices = () => {
   const [loading, setLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
+  // Filters
+  const [filterSpreadsheet, setFilterSpreadsheet] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -46,23 +52,44 @@ export const Invoices = () => {
     fetchData();
   }, [navigate]);
 
-  const { avgConfidence, totalAmount, invoicesUsed, invoiceLimit } = useMemo(() => {
-    const invoicesUsed = invoices.length;
-    const subscriptionTier = userData?.subscription?.tier || "Free";
-    const invoiceLimit = tierLimits[subscriptionTier] || 20;
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      const matchSpreadsheet = filterSpreadsheet
+        ? inv.spreadsheetId === filterSpreadsheet
+        : true;
+      const matchDate = filterDate
+        ? inv.createdAt?.split("T")[0] === filterDate
+        : true;
+      return matchSpreadsheet && matchDate;
+    });
+  }, [invoices, filterSpreadsheet, filterDate]);
 
-    const totalConfidence =
-      invoices.reduce((sum, inv) => sum + (inv.confidenceScore || 0), 0) || 0;
-    const totalAmount =
-      invoices.reduce((sum, inv) => sum + (parseInt(inv.totalAmount) || 0), 0) || 0;
+  const { avgConfidence, totalAmount, invoicesUsed, invoiceLimit } =
+    useMemo(() => {
+      const invoicesUsed = filteredInvoices.length;
+      const subscriptionTier = userData?.subscription?.tier || "Free";
+      const invoiceLimit = tierLimits[subscriptionTier] || 20;
 
-    return {
-      avgConfidence: invoicesUsed ? (totalConfidence / invoicesUsed) * 100 : 0,
-      totalAmount,
-      invoicesUsed,
-      invoiceLimit,
-    };
-  }, [invoices, userData]);
+      const totalConfidence =
+        filteredInvoices.reduce(
+          (sum, inv) => sum + (inv.confidenceScore || 0),
+          0,
+        ) || 0;
+      const totalAmount =
+        filteredInvoices.reduce(
+          (sum, inv) => sum + (parseInt(inv.totalAmount) || 0),
+          0,
+        ) || 0;
+
+      return {
+        avgConfidence: invoicesUsed
+          ? (totalConfidence / invoicesUsed) * 100
+          : 0,
+        totalAmount,
+        invoicesUsed,
+        invoiceLimit,
+      };
+    }, [filteredInvoices, userData]);
 
   if (loading) {
     return (
@@ -76,9 +103,32 @@ export const Invoices = () => {
     <>
       <Navbar />
       <Box px={{ base: 4, md: 8 }} py={8}>
-        <Flex justify="space-between" mb={6} align="center">
+        <Flex justify="space-between" mb={4} align="center">
           <Heading size="lg">Invoices</Heading>
           <Button onClick={() => setIsUploadOpen(true)}>Upload</Button>
+        </Flex>
+
+        {/* Filters */}
+        <Flex gap={4} mb={6} wrap="wrap">
+          <Select
+            placeholder="Filter by Spreadsheet"
+            value={filterSpreadsheet}
+            onChange={(e) => setFilterSpreadsheet(e.target.value)}
+            maxW="250px"
+          >
+            {userData.spreadsheets.map((ele, index) => (
+              <option key={index} value={ele.spreadsheetId} style={{color:"black"}}>
+                {ele.spreadsheetName}
+              </option>
+            ))}
+          </Select>
+
+          <Input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            maxW="200px"
+          />
         </Flex>
 
         <Flex mb={6} gap={6} wrap="wrap">
@@ -106,6 +156,7 @@ export const Invoices = () => {
           </Box>
         </Flex>
 
+        {/* Table */}
         {isDesktop ? (
           <Box
             bg="whiteAlpha.50"
@@ -119,53 +170,92 @@ export const Invoices = () => {
                 <Tr>
                   <Th>Invoice #</Th>
                   <Th>Date</Th>
+                  <Th>Spreadsheet</Th>
                   <Th isNumeric>Total</Th>
                   <Th>Status</Th>
                   <Th>Confidence</Th>
+                  <Th>Actions</Th>
                 </Tr>
               </Thead>
               <Tbody>
-                {invoices.map((inv) => (
-                  <Tr
-                    key={inv._id}
-                    _hover={{ bg: "whiteAlpha.100", cursor: "pointer" }}
-                    onClick={() => navigate(`/invoices/${inv._id}`)}
-                  >
-                    <Td>{inv.invoiceNumber}</Td>
-                    <Td>{inv.invoiceDate || "—"}</Td>
-                    <Td isNumeric>₹{inv.totalAmount}</Td>
-                    <Td>
-                      <Badge
-                        colorScheme={inv.status === "completed" ? "green" : "yellow"}
-                      >
-                        {inv.status}
-                      </Badge>
-                    </Td>
-                    <Td>
-                      <Progress
-                        value={(inv.confidenceScore || 0) * 100}
-                        size="sm"
-                        colorScheme={
-                          inv.confidenceScore > 0.8
-                            ? "green"
-                            : inv.confidenceScore > 0.6
-                            ? "yellow"
-                            : "red"
-                        }
-                        borderRadius="full"
-                      />
-                      <Text fontSize="sm">
-                        {Math.round((inv.confidenceScore || 0) * 100)}%
-                      </Text>
-                    </Td>
-                  </Tr>
-                ))}
+                {filteredInvoices.map((inv) => {
+                  // Find the spreadsheet name from userData
+                  const sheet = userData?.spreadsheets?.find(
+                    (s) => s.spreadsheetId === inv.spreadsheetId,
+                  );
+                  const sheetName = sheet
+                    ? sheet.spreadsheetName
+                    : inv.spreadsheetId || "—";
+
+                  return (
+                    <Tr
+                      key={inv._id}
+                      _hover={{ bg: "whiteAlpha.100", cursor: "pointer" }}
+                      onClick={() => navigate(`/invoices/${inv._id}`)}
+                    >
+                      <Td>{inv.invoiceNumber}</Td>
+                      <Td>{inv.invoiceDate || "—"}</Td>
+                      <Td>{sheetName}</Td>
+                      <Td isNumeric>₹{inv.totalAmount}</Td>
+                      <Td>
+                        <Badge
+                          colorScheme={
+                            inv.status === "completed" ? "green" : "yellow"
+                          }
+                        >
+                          {inv.status}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <Progress
+                          value={(inv.confidenceScore || 0) * 100}
+                          size="sm"
+                          colorScheme={
+                            inv.confidenceScore > 0.8
+                              ? "green"
+                              : inv.confidenceScore > 0.6
+                                ? "yellow"
+                                : "red"
+                          }
+                          borderRadius="full"
+                        />
+                        <Text fontSize="sm">
+                          {Math.round((inv.confidenceScore || 0) * 100)}%
+                        </Text>
+                      </Td>
+                      <Td>
+                        {inv.spreadsheetId && (
+                          <Button
+                            size="sm"
+                            colorScheme="blue"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(
+                                `https://docs.google.com/spreadsheets/d/${inv.spreadsheetId}`,
+                                "_blank",
+                              );
+                            }}
+                          >
+                            Open Sheet
+                          </Button>
+                        )}
+                      </Td>
+                    </Tr>
+                  );
+                })}
               </Tbody>
             </Table>
           </Box>
         ) : (
           <SimpleGrid columns={1} spacing={4}>
-            {invoices.map((inv) => (
+            {filteredInvoices.map((inv) => {
+               const sheet = userData?.spreadsheets?.find(
+                    (s) => s.spreadsheetId === inv.spreadsheetId,
+                  );
+                  const sheetName = sheet
+                    ? sheet.spreadsheetName
+                    : inv.spreadsheetId || "—";
+              return (
               <Box
                 key={inv._id}
                 p={6}
@@ -175,17 +265,36 @@ export const Invoices = () => {
                 borderColor="whiteAlpha.200"
                 onClick={() => navigate(`/invoices/${inv._id}`)}
               >
-                <Heading size="sm">{inv.invoiceNumber}</Heading>
-                <Text>Date: {inv.invoiceDate || "—"}</Text>
-                <Text>Status: {inv.status}</Text>
-                <Text>Total: ₹{inv.totalAmount}</Text>
-                <Text>Confidence: {Math.round((inv.confidenceScore || 0) * 100)}%</Text>
+                <Heading size="sm" color={'green'}>{inv.invoiceNumber}</Heading>
+                <Text><span style={{fontWeight:"600"}}>Date:</span> {inv.invoiceDate || "—"}</Text>
+                <Text><span style={{fontWeight:"600"}}>Spreadsheet:</span> {sheetName || "—"}</Text>
+                <Text> <span style={{fontWeight:"600"}}>Status:</span> {inv.status}</Text>
+                <Text><span style={{fontWeight:"600"}}>Total:</span> ₹{inv.totalAmount}</Text>
+                <Text>
+                  <span style={{fontWeight:"600"}}>Confidence:</span> {Math.round((inv.confidenceScore || 0) * 100)}%
+                </Text>
+                {inv.spreadsheetId && (
+                  <Button
+                    mt={2}
+                    size="sm"
+                    colorScheme="blue"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(
+                        `https://docs.google.com/spreadsheets/d/${inv.spreadsheetId}`,
+                        "_blank",
+                      );
+                    }}
+                  >
+                    Open Sheet
+                  </Button>
+                )}
               </Box>
-            ))}
+            )})}
           </SimpleGrid>
         )}
 
-        {invoices.length === 0 && (
+        {filteredInvoices.length === 0 && (
           <Box
             p={10}
             textAlign="center"
