@@ -18,7 +18,7 @@ export const pushInvoiceToSheet = async (spreadsheetId, invoice) => {
   }
 
   try {
-    // Auth client
+
     const auth = new google.auth.GoogleAuth({
       credentials: serviceAccount,
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],

@@ -140,7 +140,6 @@ export const handleFreePlanInvoice = async ({ user, senderEmail, file, spreadshe
     extractedText = file.extractedText || "";
   }
 
-  // Vendor mapping
   const vendorMap = await VendorMap.findOne({ senderEmail, userId: user._id });
 
   let invoiceNumber = "", invoiceDate = "", totalAmount = "";

@@ -75,8 +75,6 @@ const parseExcelFile = (buffer) => {
   return XLSX.utils.sheet_to_json(sheet);
 };
 
-// ------------------ Basic Plan Handler ------------------
-// ------------------ Basic Plan Handler ------------------
 export const handleBasicPlanInvoice = async ({
   user,
   senderEmail,
@@ -163,12 +161,10 @@ export const handleBasicPlanInvoice = async ({
     }
   }
 
-  /* 🚨 HARD GUARD – NEVER REMOVE */
   if (!extractedText || extractedText.trim().length === 0) {
     return { fileName: file.originalname, status: "TEXT_EXTRACTION_FAILED" };
   }
 
-  /* ===================== Vendor Mapping ===================== */
   let vendorMap = await VendorMap.findOne({
     senderEmail,
     createdBy: user._id,
@@ -224,7 +220,7 @@ export const handleBasicPlanInvoice = async ({
 
   const status = confidenceScore >= 0.8 ? "AUTO_PROCESSED" : "NEEDS_REVIEW";
 
-  /* ===================== UPSERT Vendor Map ===================== */
+
   await VendorMap.findOneAndUpdate(
     { senderEmail, createdBy: user._id },
     {
@@ -247,7 +243,7 @@ export const handleBasicPlanInvoice = async ({
     { upsert: true }
   );
 
-  /* ===================== Create Invoice ===================== */
+
   const invoice = await InvoiceExtractionModel.create({
     userId: user._id,
     spreadsheetId,

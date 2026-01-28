@@ -80,7 +80,6 @@ export const receiveEmail = async (req, res) => {
       return res.status(400).json({ message: "No invoice files uploaded" });
     }
 
-    // ✅ resolve spreadsheetId ONCE
     const spreadsheetId =
       req.body.spreadsheetId || user.googleSheets?.spreadsheetId || null;
 

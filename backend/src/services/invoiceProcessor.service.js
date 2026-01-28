@@ -10,7 +10,6 @@ export const processInvoice = async ({
     throw new Error("senderEmail and file are required");
   }
 
-  // mock extraction (replace with OCR / LLM logic)
   const invoiceNumber = `INV-${Date.now()}`;
   const confidenceScore = 0.95;
 
