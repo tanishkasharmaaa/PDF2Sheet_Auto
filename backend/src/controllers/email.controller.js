@@ -4,29 +4,26 @@ import { exec } from "child_process";
 import { createWorker } from "tesseract.js";
 import XLSX from "xlsx";
 
-import InvoiceExtractionModel from "../models/InvoiceExtraction.js";
-import { pushInvoiceToSheet } from "../services/googleSheets.js";
 import User from "../models/Users.js";
 import { detectFileType } from "../utils/detectFileType.js";
 import { parseCSVInvoice } from "../utils/parseCsv.js";
-import { parseExcelInvoice } from "../utils/parseExcel.js";
-import { handleBasicPlanInvoice } from "../services/basicPlanHandler.js";
+import InvoiceExtractionModel from "../models/InvoiceExtraction.js";
+import { pushInvoiceToSheet } from "../services/googleSheets.js";
 import { handleFreePlanInvoice } from "../services/freePlanHandler.js";
+import { handleBasicPlanInvoice } from "../services/basicPlanHandler.js";
 import { handleProPlanInvoice } from "../services/proPlanHandler.js";
 
 const TEMP_DIR = path.join(process.cwd(), "temp");
 if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR);
 
-/* ------------------ Helpers ------------------ */
+/* ---------------- Helpers ---------------- */
 
-// Save uploaded PDF buffer to temp file
 const saveBufferToTempFile = (buffer, originalName) => {
   const filePath = path.join(TEMP_DIR, `${Date.now()}-${originalName}`);
   fs.writeFileSync(filePath, buffer);
   return filePath;
 };
 
-// PDF → PNG images
 const pdfToImages = (pdfPath) =>
   new Promise((resolve, reject) => {
     const baseName = path.basename(pdfPath, ".pdf");
@@ -42,45 +39,36 @@ const pdfToImages = (pdfPath) =>
 
       if (!images.length)
         return reject(new Error("No images generated from PDF"));
+
       resolve(images);
     });
   });
 
-// OCR using Tesseract
 const runOCR = async (imagePaths) => {
-  if (!imagePaths || !imagePaths.length)
-    throw new Error("No images to process");
+  if (!imagePaths?.length) throw new Error("No images to OCR");
 
-  const worker = await createWorker();
-  let extractedText = "";
+  // ✅ Tesseract v5+ (NO load / loadLanguage)
+  const worker = await createWorker("eng");
 
   try {
-    await worker.load();
-    await worker.loadLanguage("eng");
-    await worker.initialize("eng");
-
+    let text = "";
     for (const img of imagePaths) {
-      if (!fs.existsSync(img)) continue;
-
       const { data } = await worker.recognize(img);
-      extractedText += data.text + "\n";
+      text += data.text + "\n";
     }
-
-    return extractedText.trim();
+    return text.trim();
   } finally {
     await worker.terminate();
   }
 };
 
-// Parse Excel from buffer
 const parseExcelFile = (buffer) => {
   const workbook = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
   return XLSX.utils.sheet_to_json(sheet);
 };
 
-/* ------------------ Controller ------------------ */
+/* ---------------- Controller ---------------- */
 
 export const receiveEmail = async (req, res) => {
   try {
@@ -88,8 +76,13 @@ export const receiveEmail = async (req, res) => {
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
     const files = req.files;
-    if (!files || !files.length)
+    if (!files || !files.length) {
       return res.status(400).json({ message: "No invoice files uploaded" });
+    }
+
+    // ✅ resolve spreadsheetId ONCE
+    const spreadsheetId =
+      req.body.spreadsheetId || user.googleSheets?.spreadsheetId || null;
 
     const tierLimits = { Free: 20, Basic: 200, Pro: Infinity };
     const allowedInvoices = tierLimits[user.subscription.tier];
@@ -128,6 +121,7 @@ export const receiveEmail = async (req, res) => {
           const invoice = await InvoiceExtractionModel.create({
             userId: user._id,
             senderEmail: req.user.email,
+            spreadsheetId,
             fileName: file.originalname,
             extractedText: JSON.stringify(row),
             invoiceNumber: row.invoiceNumber,
@@ -137,8 +131,9 @@ export const receiveEmail = async (req, res) => {
             status: "AUTO_PROCESSED",
           });
 
-          if (user.spreadsheets.length > 0) {
-            await pushInvoiceToSheet(user.spreadsheets[0].spreadsheetId, invoice);
+          // ✅ safe sheet push
+          if (spreadsheetId) {
+            await pushInvoiceToSheet(spreadsheetId, invoice);
           }
 
           user.subscription.invoicesUploaded++;
@@ -167,8 +162,7 @@ export const receiveEmail = async (req, res) => {
         senderEmail: req.user.email,
         extractedText,
         file,
-        spreadsheetId:
-          req.body.spreadsheetId || (user.spreadsheets[0]?.spreadsheetId || null),
+        spreadsheetId, // ✅ FIXED
       };
 
       let result;
@@ -189,10 +183,10 @@ export const receiveEmail = async (req, res) => {
 
     await user.save();
 
-    // ✅ Send JSON response for all files
     return res.json({
       success: true,
       used: user.subscription.invoicesUploaded,
+      spreadsheetId,
       results,
     });
   } catch (err) {

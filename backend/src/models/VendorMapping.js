@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const VendorMappingSchema = new mongoose.Schema(
   {
-    senderEmail: { type: String, required: true, unique: true },
+    senderEmail: { type: String, required: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
     vendorName: String,
 
@@ -28,8 +29,11 @@ const VendorMappingSchema = new mongoose.Schema(
 
     version: { type: Number, default: 1 },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
+
+// Compound index: unique per user
+VendorMappingSchema.index({ senderEmail: 1, createdBy: 1 }, { unique: true });
 
 const VendorMappingModel = mongoose.model("VendorMap", VendorMappingSchema);
 

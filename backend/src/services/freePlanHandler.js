@@ -100,6 +100,7 @@ export const handleFreePlanInvoice = async ({ user, senderEmail, file, spreadshe
       const invoice = await InvoiceExtractionModel.create({
         userId: user._id,
         senderEmail,
+        spreadsheetId,
         fileName: file.originalname,
         extractedText: JSON.stringify(row),
         invoiceNumber: row.invoiceNumber,
@@ -163,6 +164,7 @@ export const handleFreePlanInvoice = async ({ user, senderEmail, file, spreadshe
 
   const invoice = await InvoiceExtractionModel.create({
     userId: user._id,
+    spreadsheetId,
     senderEmail,
     fileName: file.originalname,
     extractedText,
@@ -186,6 +188,7 @@ export const handleFreePlanInvoice = async ({ user, senderEmail, file, spreadshe
   if (!vendorMap) {
     await VendorMap.create({
       senderEmail,
+      createdBy:user._id,
       userId: user._id,
       extractionRules: {
         invoiceNumberRegex: invoiceNumber ? `Invoice Number[:\\s]*(${invoiceNumber})` : null,

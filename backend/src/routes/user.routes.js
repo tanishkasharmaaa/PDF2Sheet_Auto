@@ -4,9 +4,9 @@ import {
   loginUser,
   getCurrentUser,
   upgradeSubscription,
-  addSpreadsheet,
   updateSpreadsheet,
-  deleteSpreadsheet
+  deleteSpreadsheet,
+  addSpreadsheet
 } from "../controllers/user.controller.js";
 import { authMiddleware } from "../middleware/authMiddlware.js";
 

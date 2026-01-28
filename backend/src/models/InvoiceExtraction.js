@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const InvoiceExtractionSchema = new mongoose.Schema(
   {
+    spreadsheetId:{type:String,required:true},
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

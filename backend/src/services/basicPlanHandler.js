@@ -76,6 +76,7 @@ const parseExcelFile = (buffer) => {
 };
 
 // ------------------ Basic Plan Handler ------------------
+// ------------------ Basic Plan Handler ------------------
 export const handleBasicPlanInvoice = async ({
   user,
   senderEmail,
@@ -87,7 +88,7 @@ export const handleBasicPlanInvoice = async ({
   );
   if (!selectedSheet) throw new Error("INVALID_SPREADSHEET_SELECTION");
 
-  // ---------- CSV / Excel ----------
+  /* ===================== CSV / EXCEL ===================== */
   if (file.mimetype === "text/csv" || file.mimetype.includes("excel")) {
     const rows =
       file.mimetype === "text/csv"
@@ -97,24 +98,33 @@ export const handleBasicPlanInvoice = async ({
     const results = [];
 
     for (const row of rows) {
+      if (!row.invoiceNumber) {
+        results.push({ status: "INVALID_ROW_SKIPPED" });
+        continue;
+      }
+
       const exists = await InvoiceExtractionModel.findOne({
         invoiceNumber: row.invoiceNumber,
         userId: user._id,
       });
 
       if (exists) {
-        results.push({ invoiceNumber: row.invoiceNumber, status: "DUPLICATE_SKIPPED" });
+        results.push({
+          invoiceNumber: row.invoiceNumber,
+          status: "DUPLICATE_SKIPPED",
+        });
         continue;
       }
 
       const invoice = await InvoiceExtractionModel.create({
         userId: user._id,
+        spreadsheetId,
         senderEmail,
         fileName: file.originalname,
         extractedText: JSON.stringify(row),
         invoiceNumber: row.invoiceNumber,
-        invoiceDate: row.date,
-        totalAmount: row.total,
+        invoiceDate: row.date || "",
+        totalAmount: row.total || "",
         confidenceScore: 1,
         status: "AUTO_PROCESSED",
       });
@@ -122,80 +132,125 @@ export const handleBasicPlanInvoice = async ({
       try {
         await pushInvoiceToSheet(selectedSheet.spreadsheetId, invoice);
       } catch (err) {
-        console.error("Push to sheet failed:", err);
+        console.error("Push to sheet failed:", err.message);
       }
 
-      results.push({ invoiceNumber: row.invoiceNumber, status: "AUTO_PROCESSED" });
       user.subscription.invoicesUploaded++;
+      results.push({
+        invoiceNumber: row.invoiceNumber,
+        status: "AUTO_PROCESSED",
+      });
     }
 
     return results;
   }
 
-  // ---------- PDF ----------
+  /* ===================== PDF ===================== */
   let extractedText = "";
+
   if (file.mimetype === "application/pdf") {
     try {
       const pdfPath = saveBufferToTempFile(file.buffer, file.originalname);
       const images = await pdfToImages(pdfPath);
       extractedText = await runOCR(images);
+
       try { fs.unlinkSync(pdfPath); } catch {}
       images.forEach((img) => { try { fs.unlinkSync(img); } catch {} });
+
     } catch (err) {
-      console.error("OCR failed:", err);
+      console.error("OCR failed:", err.message);
       return { fileName: file.originalname, status: "OCR_FAILED" };
     }
-  } else {
-    extractedText = file.extractedText || "";
   }
 
-  // Vendor mapping
-  const vendorMap = await VendorMap.findOne({
+  /* 🚨 HARD GUARD – NEVER REMOVE */
+  if (!extractedText || extractedText.trim().length === 0) {
+    return { fileName: file.originalname, status: "TEXT_EXTRACTION_FAILED" };
+  }
+
+  /* ===================== Vendor Mapping ===================== */
+  let vendorMap = await VendorMap.findOne({
     senderEmail,
     createdBy: user._id,
     isActive: true,
   });
 
-  let invoiceNumber = "",
-    invoiceDate = "",
-    totalAmount = "";
+  let invoiceNumber = "";
+  let invoiceDate = "";
+  let totalAmount = "";
 
   if (vendorMap?.extractionRules) {
     const { invoiceNumberRegex, invoiceDateRegex, totalAmountRegex } =
       vendorMap.extractionRules;
-    if (invoiceNumberRegex) invoiceNumber = safeExtract(extractedText, invoiceNumberRegex);
-    if (invoiceDateRegex) invoiceDate = safeExtract(extractedText, invoiceDateRegex);
-    if (totalAmountRegex) totalAmount = safeExtract(extractedText, totalAmountRegex);
+
+    if (invoiceNumberRegex)
+      invoiceNumber = safeExtract(extractedText, invoiceNumberRegex);
+
+    if (invoiceDateRegex)
+      invoiceDate = safeExtract(extractedText, invoiceDateRegex);
+
+    if (totalAmountRegex)
+      totalAmount = safeExtract(extractedText, totalAmountRegex);
   }
 
-  if (!invoiceNumber) invoiceNumber = extractedText.match(/Invoice Number[:\s]*(.+)/i)?.[1]?.trim() || "";
-  if (!invoiceDate) invoiceDate = extractedText.match(/Invoice Date[:\s]*(.+)/i)?.[1]?.trim() || "";
-  if (!totalAmount) totalAmount = extractAmount(extractedText);
+  if (!invoiceNumber)
+    invoiceNumber =
+      extractedText.match(/Invoice Number[:\s]*(.+)/i)?.[1]?.trim() || "";
 
-  const exists = await InvoiceExtractionModel.findOne({ invoiceNumber, userId: user._id });
-  if (exists) return { status: "DUPLICATE_SKIPPED", invoiceNumber };
+  if (!invoiceDate)
+    invoiceDate =
+      extractedText.match(/Invoice Date[:\s]*(.+)/i)?.[1]?.trim() || "";
+
+  if (!totalAmount)
+    totalAmount = extractAmount(extractedText);
+
+  if (!invoiceNumber) {
+    return { status: "NO_INVOICE_NUMBER_FOUND" };
+  }
+
+  const exists = await InvoiceExtractionModel.findOne({
+    invoiceNumber,
+    userId: user._id,
+  });
+
+  if (exists) {
+    return { status: "DUPLICATE_SKIPPED", invoiceNumber };
+  }
 
   const confidenceScore =
-    (invoiceNumber ? 0.3 : 0) + (invoiceDate ? 0.3 : 0) + (totalAmount ? 0.4 : 0);
+    (invoiceNumber ? 0.3 : 0) +
+    (invoiceDate ? 0.3 : 0) +
+    (totalAmount ? 0.4 : 0);
+
   const status = confidenceScore >= 0.8 ? "AUTO_PROCESSED" : "NEEDS_REVIEW";
 
-  if (status === "NEEDS_REVIEW" && !vendorMap) {
-    await VendorMap.create({
-      senderEmail,
-      createdBy: user._id,
-      extractionRules: {
-        invoiceNumberRegex: invoiceNumber ? `Invoice Number[:\\s]*(${invoiceNumber})` : null,
-        invoiceDateRegex: invoiceDate ? `Invoice Date[:\\s]*(${invoiceDate})` : null,
-        totalAmountRegex: totalAmount ? `(${totalAmount.replace(".", "\\.")})` : null,
+  /* ===================== UPSERT Vendor Map ===================== */
+  await VendorMap.findOneAndUpdate(
+    { senderEmail, createdBy: user._id },
+    {
+      $setOnInsert: {
+        extractionRules: {
+          invoiceNumberRegex: invoiceNumber
+            ? `Invoice Number[:\\s]*(${invoiceNumber})`
+            : null,
+          invoiceDateRegex: invoiceDate
+            ? `Invoice Date[:\\s]*(${invoiceDate})`
+            : null,
+          totalAmountRegex: totalAmount
+            ? `(${totalAmount.replace(".", "\\.")})`
+            : null,
+        },
+        version: 1,
+        isActive: true,
       },
-      mappingSource: "BASIC_AUTO",
-      version: 1,
-      isActive: true,
-    });
-  }
+    },
+    { upsert: true }
+  );
 
+  /* ===================== Create Invoice ===================== */
   const invoice = await InvoiceExtractionModel.create({
     userId: user._id,
+    spreadsheetId,
     senderEmail,
     fileName: file.originalname,
     extractedText,
@@ -210,7 +265,7 @@ export const handleBasicPlanInvoice = async ({
     try {
       await pushInvoiceToSheet(selectedSheet.spreadsheetId, invoice);
     } catch (err) {
-      console.error("Push to sheet failed:", err);
+      console.error("Push to sheet failed:", err.message);
     }
   }
 

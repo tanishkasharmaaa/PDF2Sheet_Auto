@@ -100,6 +100,7 @@ export const handleProPlanInvoice = async ({ user, senderEmail, file, spreadshee
       const invoice = await InvoiceExtractionModel.create({
         userId: user._id,
         senderEmail,
+        spreadsheetId,
         fileName: file.originalname,
         extractedText: JSON.stringify(row),
         invoiceNumber: row.invoiceNumber,
@@ -135,7 +136,7 @@ export const handleProPlanInvoice = async ({ user, senderEmail, file, spreadshee
     return { fileName: file.originalname, status: "OCR_FAILED" };
   }
 
-  const vendorMap = await VendorMap.findOne({ senderEmail, userId: user._id });
+  let vendorMap = await VendorMap.findOne({ senderEmail, userId: user._id });
 
   let invoiceNumber = "", invoiceDate = "", totalAmount = "";
 
@@ -159,6 +160,7 @@ export const handleProPlanInvoice = async ({ user, senderEmail, file, spreadshee
   const invoice = await InvoiceExtractionModel.create({
     userId: user._id,
     senderEmail,
+    spreadsheetId,
     fileName: file.originalname,
     extractedText,
     invoiceNumber,
@@ -174,10 +176,11 @@ export const handleProPlanInvoice = async ({ user, senderEmail, file, spreadshee
 
   user.subscription.invoicesUploaded++;
 
-  if (!vendorMap) {
-    await VendorMap.create({
-      senderEmail,
-      userId: user._id,
+  vendorMap = await VendorMap.findOneAndUpdate(
+  { senderEmail, createdBy: user._id },
+  {
+    $setOnInsert: {
+      createdBy: user._id, 
       extractionRules: {
         invoiceNumberRegex: invoiceNumber ? `Invoice Number[:\\s]*(${invoiceNumber})` : null,
         invoiceDateRegex: invoiceDate ? `Invoice Date[:\\s]*(${invoiceDate})` : null,
@@ -185,8 +188,13 @@ export const handleProPlanInvoice = async ({ user, senderEmail, file, spreadshee
       },
       confidenceSource: "PRO_AUTO",
       version: 1,
-    });
-  }
+      isActive: true,
+    },
+  },
+  { upsert: true, new: true }
+);
+
+
 
   return { invoiceNumber, status, confidenceScore };
 };
