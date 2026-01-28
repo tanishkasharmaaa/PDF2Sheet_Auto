@@ -43,6 +43,7 @@ const FakePaymentModal = ({ isOpen, onClose, plan }) => {
       });
 
       onClose();
+      window.location.replace("/login")
     } catch (err) {
       toast({
         title: "Payment failed",

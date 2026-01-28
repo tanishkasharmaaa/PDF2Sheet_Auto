@@ -22,49 +22,56 @@ const Signup = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const handleSubmit = async () => {
-    if (!name || !email || !password) {
-      toast({
-        title: "All fields are required",
-        status: "warning",
-      });
-      return;
-    }
+ const handleSubmit = async () => {
+  if (!name || !email || !password) {
+    toast({
+      title: "All fields are required",
+      status: "warning",
+    });
+    return;
+  }
 
-    if (password.length < 8) {
-      toast({
-        title: "Password too short",
-        description: "Minimum 8 characters required",
-        status: "warning",
-      });
-      return;
-    }
+  if (password.length < 8) {
+    toast({
+      title: "Password too short",
+      description: "Minimum 8 characters required",
+      status: "warning",
+    });
+    return;
+  }
 
-    try {
-      setLoading(true);
-      const res = await signup(name, email, password);
+  try {
+    setLoading(true);
 
-      if (!res || res.error) {
-        throw new Error(res?.message || "Signup failed");
-      }
+    const res = await signup(name, email, password);
 
-      toast({
-        title: "Account created 🎉",
-        description: "Please login to continue",
-        status: "success",
-      });
-
-      navigate("/login");
-    } catch (err) {
+    if (res?.success === false) {
       toast({
         title: "Signup failed",
-        description: err.message || "Something went wrong",
+        description: res.error || "Something went wrong",
         status: "error",
       });
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+
+    toast({
+      title: "Account created 🎉",
+      description: "Please login to continue",
+      status: "success",
+    });
+
+    navigate("/login");
+  } catch (err) {
+   
+    toast({
+      title: "Signup failed",
+      description: err.message || "Something went wrong",
+      status: "error",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (<>
   <Navbar/>
